@@ -6,6 +6,7 @@ import 'package:percent_indicator/circular_percent_indicator.dart';
 import '../../models/habit.dart';
 import '../../services/decay_service.dart';
 import '../habits/create_habit_screen.dart';
+import '../habits/habit_details_screen.dart';
 import '../habits/habit_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -101,9 +102,18 @@ class HabitCard extends ConsumerWidget {
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => HabitDetailsScreen(habit: habit),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
           children: [
             // Circular Indicator
             CircularPercentIndicator(
@@ -164,6 +174,7 @@ class HabitCard extends ConsumerWidget {
               tooltip: 'Log Performance',
             ),
           ],
+          ),
         ),
       ),
     );

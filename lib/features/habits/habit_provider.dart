@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../models/habit.dart';
 import '../../models/habit_log.dart';
 import '../../services/decay_service.dart';
+import '../../services/notification_scheduler.dart';
 import 'habit_repository.dart';
 
 part 'habit_provider.g.dart';
@@ -21,22 +22,41 @@ class Habits extends _$Habits {
     return repository.getHabits();
   }
 
+  Future<void> _rescheduleNotifications(List<Habit> habits) async {
+    await NotificationScheduler().scheduleHabitReminders(habits);
+  }
+
   Future<void> addHabit(Habit habit) async {
     final repository = ref.read(habitRepositoryProvider);
     await repository.saveHabit(habit);
     ref.invalidateSelf();
+    
+    // Schedule notifications for all habits (simplest approach for MVP)
+    // Ideally we just add for one, but scheduler clears all to be safe.
+    // We need to get the list first? No, invalidateSelf triggers build.
+    // But build is async.
+    // Let's wait a tick or read directly from repo?
+    // Better: Get fresh list from repo.
+    final habits = await repository.getHabits();
+    await _rescheduleNotifications(habits);
   }
 
   Future<void> updateHabit(Habit habit) async {
     final repository = ref.read(habitRepositoryProvider);
     await repository.updateHabit(habit);
     ref.invalidateSelf();
+
+    final habits = await repository.getHabits();
+    await _rescheduleNotifications(habits);
   }
 
   Future<void> deleteHabit(String id) async {
     final repository = ref.read(habitRepositoryProvider);
     await repository.deleteHabit(id);
     ref.invalidateSelf();
+
+    final habits = await repository.getHabits();
+    await _rescheduleNotifications(habits);
   }
 
   Future<void> performHabit(String id) async {
