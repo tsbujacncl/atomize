@@ -5,7 +5,7 @@
 This document tracks the development progress of Atomize V1.2, a complete redesign focusing on anti-addictive, supportive habit tracking with flame-based scoring.
 
 **Last Updated**: 2025-11-24
-**Current Version**: V1.2 Foundation (Milestones 0-5)
+**Current Version**: V1.2 Foundation (Milestones 0-5.1)
 **Branch**: master
 **Design Document**: [DESIGN_DOCUMENT_V1.2.md](./DESIGN_DOCUMENT_V1.2.md)
 
@@ -186,6 +186,31 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 
 ---
 
+### ✅ Milestone 5.1: Logo & Branding
+**Status**: Complete
+
+- [x] Create `AtomizeLogo` widget:
+  - Gradient text from blue (#3B82F6) to orange (#F97316)
+  - "At" + flame icon + "mize" layout
+  - Inline flame replaces the "o" letter
+  - Static (no animation)
+  - Configurable font size
+- [x] Update Home Screen with logo header:
+  - Logo in app bar (24px)
+  - "Today" as section header below
+- [x] Create Onboarding Welcome Screen:
+  - Large logo (48px)
+  - Tagline: "Small habits. Big change."
+  - Get Started button
+- [x] Update DESIGN_DOCUMENT_V1.2.md with section 5.9 Logo & Branding
+
+**Files Created/Modified**:
+- `lib/presentation/widgets/atomize_logo.dart` (new)
+- `lib/presentation/screens/home/home_screen.dart` (modified)
+- `lib/presentation/screens/onboarding/welcome_screen.dart` (new)
+
+---
+
 ## Pending Milestones
 
 ### ⏳ Milestone 6: Create Habit Screen
@@ -305,6 +330,7 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 ## Changelog
 
 ### 2025-11-24
+- **Milestone 5.1 Complete**: Logo & Branding - AtomizeLogo widget with blue→orange gradient and inline flame
 - **Milestone 5 Complete**: Home screen UI with habit cards and empty state
 - **V1.2 Fresh Start**: Complete redesign based on DESIGN_DOCUMENT_V1.2.md
 - **Milestones 0-4 Complete**: Project reset, data layer, score system, theme, Riverpod providers

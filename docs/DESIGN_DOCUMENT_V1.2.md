@@ -851,6 +851,39 @@ For holidays or breaks, users can mute all notifications:
 
 **Access:** Settings → "Taking a break?"
 
+### 5.9 Logo & Branding
+
+**Atomize Wordmark:**
+
+The app name is displayed as a styled wordmark with the following characteristics:
+
+```
+At🔥mize
+```
+
+**Design specifications:**
+- **Text:** "Atomize" with only capital A
+- **The "o":** Replaced with a flame icon (teardrop shape, same as habit flames)
+- **Gradient:** Linear gradient from blue (#3B82F6) on the left to orange (#F97316) on the right
+- **Font:** Inter Bold (weight 700)
+- **Animation:** Static (no flickering for the logo flame)
+
+**Color progression across letters:**
+```
+A    t    🔥    m    i    z    e
+│    │    │     │    │    │    │
+Blue ─────────────────────→ Orange
+```
+
+**Usage:**
+| Context | Font Size | Notes |
+|---------|-----------|-------|
+| Home screen app bar | 24px | Centered, with "Today" section header below |
+| Onboarding welcome | 48px | Large, centered, with tagline |
+| Splash screen | 48px | Future implementation |
+
+**Tagline:** "Small habits. Big change."
+
 ---
 
 ## 6. Data Architecture

@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 
 import '../../providers/today_habits_provider.dart';
 import '../../providers/score_provider.dart';
+import '../../widgets/atomize_logo.dart';
 import '../../widgets/habit_card.dart';
 import '../create_habit/create_habit_screen.dart';
 import '../settings/settings_screen.dart';
@@ -18,7 +19,8 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Today'),
+        title: const AtomizeLogo(fontSize: 24),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -148,6 +150,17 @@ class _HabitList extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       children: [
+        // Today section header
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Text(
+            'Today',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ),
+
         // Incomplete habits
         if (incomplete.isNotEmpty) ...[
           Padding(
