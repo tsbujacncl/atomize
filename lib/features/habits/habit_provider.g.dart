@@ -49,7 +49,7 @@ final class HabitRepositoryProvider
   }
 }
 
-String _$habitRepositoryHash() => r'99f3d3542a631d09990307fc2ea4cbf419f2f7bc';
+String _$habitRepositoryHash() => r'd704976779ef8778cee8c6d4cb50b0fc104fd38b';
 
 @ProviderFor(Habits)
 const habitsProvider = HabitsProvider._();
@@ -74,7 +74,7 @@ final class HabitsProvider extends $AsyncNotifierProvider<Habits, List<Habit>> {
   Habits create() => Habits();
 }
 
-String _$habitsHash() => r'b393850108d0676e0d5ed4fd45f4935d2bbed380';
+String _$habitsHash() => r'88082f223bb4ea29d85a5cce8e10ae8abcae15a7';
 
 abstract class _$Habits extends $AsyncNotifier<List<Habit>> {
   FutureOr<List<Habit>> build();
