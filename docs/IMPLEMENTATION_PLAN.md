@@ -5,7 +5,7 @@
 This document tracks the development progress of Atomize V1.2, a complete redesign focusing on anti-addictive, supportive habit tracking with flame-based scoring.
 
 **Last Updated**: 2025-11-24
-**Current Version**: V1.2 Foundation (Milestones 0-4)
+**Current Version**: V1.2 Foundation (Milestones 0-5)
 **Branch**: master
 **Design Document**: [DESIGN_DOCUMENT_V1.2.md](./DESIGN_DOCUMENT_V1.2.md)
 
@@ -164,22 +164,29 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 
 ---
 
-## Pending Milestones
+### ✅ Milestone 5: Home Screen UI
+**Status**: Complete
 
-### ⏳ Milestone 5: Home Screen UI
-**Status**: Pending
-
-- [ ] Create `HomeScreen` scaffold
-- [ ] Create `HabitCard` widget:
+- [x] Create `HomeScreen` scaffold
+- [x] Create `HabitCard` widget:
   - Rectangle layout (not grid)
   - Shows: name, scheduled time, flame, score %
   - Tap flame → complete habit
   - Tap card → expand/navigate to detail
-- [ ] Empty state: "No habits yet. Create your first one."
-- [ ] FAB or button to create habit
-- [ ] Integrate with `todayHabitsProvider`
+- [x] Empty state: "No habits yet. Create your first one."
+- [x] FAB or button to create habit
+- [x] Integrate with `todayHabitsProvider`
+
+**Files Created**:
+- `lib/presentation/screens/home/home_screen.dart`
+- `lib/presentation/widgets/habit_card.dart`
+- `lib/presentation/screens/create_habit/create_habit_screen.dart` (placeholder)
+- `lib/presentation/screens/habit_detail/habit_detail_screen.dart` (placeholder)
+- `lib/presentation/screens/settings/settings_screen.dart` (placeholder)
 
 ---
+
+## Pending Milestones
 
 ### ⏳ Milestone 6: Create Habit Screen
 **Status**: Pending
@@ -298,6 +305,7 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 ## Changelog
 
 ### 2025-11-24
+- **Milestone 5 Complete**: Home screen UI with habit cards and empty state
 - **V1.2 Fresh Start**: Complete redesign based on DESIGN_DOCUMENT_V1.2.md
 - **Milestones 0-4 Complete**: Project reset, data layer, score system, theme, Riverpod providers
 - **Philosophy Change**: Anti-addictive design, no streaks, no achievements, flame-based scoring

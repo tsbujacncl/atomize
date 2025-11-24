@@ -4,22 +4,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:atomize/app.dart';
 
 void main() {
-  testWidgets('App renders smoke test', (WidgetTester tester) async {
+  testWidgets('App renders home screen', (WidgetTester tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: AtomizeApp(),
       ),
     );
 
-    // Verify that the app title is displayed
-    expect(find.text('Atomize'), findsOneWidget);
-    expect(find.text('Atomize V1.2'), findsOneWidget);
-    expect(find.text('Small habits. Big change.'), findsOneWidget);
+    // Wait for async operations
+    await tester.pumpAndSettle();
 
-    // Verify score demos are present
-    expect(find.text('0%'), findsOneWidget);
-    expect(find.text('40%'), findsOneWidget);
-    expect(find.text('70%'), findsOneWidget);
-    expect(find.text('100%'), findsOneWidget);
+    // Verify that the app bar shows "Today"
+    expect(find.text('Today'), findsOneWidget);
   });
 }
