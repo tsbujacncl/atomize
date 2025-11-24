@@ -1,0 +1,177 @@
+import 'dart:math' as math;
+
+import '../../data/repositories/habit_repository.dart';
+import '../../data/repositories/completion_repository.dart';
+import '../../data/repositories/preferences_repository.dart';
+import '../models/enums.dart';
+
+/// Service for calculating habit scores based on the flame system.
+///
+/// Score range: 0-100
+/// - Gain: Applied when habit is completed
+/// - Decay: Applied at day boundary (4am default) if habit was missed
+///
+/// Formulas from design document:
+/// - baseGain = 10 * pow(1 - currentScore / 100, 0.7)
+/// - baseDecay = (3 + score * 0.05) * (1 / (1 + maturity * 0.03))
+class ScoreService {
+  final HabitRepository _habitRepository;
+  final CompletionRepository _completionRepository;
+  final PreferencesRepository _preferencesRepository;
+
+  ScoreService({
+    required HabitRepository habitRepository,
+    required CompletionRepository completionRepository,
+    required PreferencesRepository preferencesRepository,
+  })  : _habitRepository = habitRepository,
+        _completionRepository = completionRepository,
+        _preferencesRepository = preferencesRepository;
+
+  /// Calculate score gain for completing a habit.
+  ///
+  /// Gain is inversely proportional to current score (diminishing returns).
+  /// This makes it easier to build up from low scores but harder to
+  /// maintain very high scores.
+  ///
+  /// Examples (from design doc):
+  /// - Score 0: +10.0 points
+  /// - Score 30: +8.1 points
+  /// - Score 50: +6.5 points
+  /// - Score 70: +4.6 points
+  /// - Score 90: +2.2 points
+  double calculateGain(double currentScore) {
+    if (currentScore >= 100) return 0;
+    return 10 * math.pow(1 - currentScore / 100, 0.7).toDouble();
+  }
+
+  /// Calculate score decay for missing a habit.
+  ///
+  /// Decay scales with current score and decreases with maturity.
+  /// Higher scores decay faster, but mature habits are more resilient.
+  ///
+  /// Examples:
+  /// - Score 20, maturity 0: -4.0 points
+  /// - Score 50, maturity 0: -5.5 points
+  /// - Score 80, maturity 0: -7.0 points
+  /// - Score 50, maturity 30: -2.9 points (maturity protection)
+  double calculateDecay(double currentScore, int maturity) {
+    if (currentScore <= 0) return 0;
+    final baseDecay = 3 + currentScore * 0.05;
+    final maturityProtection = 1 / (1 + maturity * 0.03);
+    return baseDecay * maturityProtection;
+  }
+
+  /// Apply a completion to a habit.
+  ///
+  /// [habitId] - The habit being completed
+  /// [source] - How the completion was recorded
+  /// [creditPercentage] - Credit percentage (100 same day, 75 yesterday, etc.)
+  ///
+  /// Returns the new score after completion.
+  Future<double> applyCompletion({
+    required String habitId,
+    CompletionSource source = CompletionSource.manual,
+    double creditPercentage = 100.0,
+  }) async {
+    final habit = await _habitRepository.getById(habitId);
+    if (habit == null) throw ArgumentError('Habit not found: $habitId');
+
+    final effectiveDate =
+        await _preferencesRepository.getEffectiveDate(DateTime.now());
+
+    // Check if already completed today
+    final alreadyCompleted = await _completionRepository.wasCompletedOnDate(
+      habitId,
+      effectiveDate,
+    );
+    if (alreadyCompleted) {
+      return habit.score; // Already completed, no change
+    }
+
+    // Calculate gain with credit percentage
+    final baseGain = calculateGain(habit.score);
+    final adjustedGain = baseGain * (creditPercentage / 100);
+    final newScore = math.min(100.0, habit.score + adjustedGain);
+
+    // Update maturity if score is above 50
+    int newMaturity = habit.maturity;
+    if (newScore > 50) {
+      newMaturity++;
+    }
+
+    // Record completion
+    await _completionRepository.recordCompletion(
+      habitId: habitId,
+      effectiveDate: effectiveDate,
+      scoreAtCompletion: habit.score,
+      source: source,
+      creditPercentage: creditPercentage,
+    );
+
+    // Update habit score and maturity
+    await _habitRepository.updateScore(habitId, newScore, newMaturity);
+
+    return newScore;
+  }
+
+  /// Apply day-end decay to all habits that weren't completed.
+  ///
+  /// Called at day boundary (default 4am) or when app opens.
+  /// Only decays habits that weren't completed on the previous effective date.
+  Future<void> applyDayEndDecay() async {
+    final now = DateTime.now();
+    final effectiveDate = await _preferencesRepository.getEffectiveDate(now);
+
+    // The date we need to check completions for is yesterday's effective date
+    final previousEffectiveDate =
+        effectiveDate.subtract(const Duration(days: 1));
+
+    final habits = await _habitRepository.getAllActive();
+
+    for (final habit in habits) {
+      // Check if habit was completed on the previous effective date
+      final wasCompleted = await _completionRepository.wasCompletedOnDate(
+        habit.id,
+        previousEffectiveDate,
+      );
+
+      // Skip if completed or if we already applied decay for this period
+      if (wasCompleted) continue;
+      if (habit.lastDecayAt != null &&
+          _isSameDay(habit.lastDecayAt!, effectiveDate)) {
+        continue;
+      }
+
+      // Apply decay
+      final decay = calculateDecay(habit.score, habit.maturity);
+      final newScore = math.max(0.0, habit.score - decay);
+
+      await _habitRepository.updateScore(habit.id, newScore, habit.maturity);
+      await _habitRepository.updateLastDecay(habit.id, effectiveDate);
+    }
+  }
+
+  /// Apply partial credit for count-type habits (Phase 2).
+  ///
+  /// Returns the effective credit percentage based on completion ratio.
+  double calculateCountCredit(int achieved, int target) {
+    if (target <= 0) return 100.0;
+    final ratio = achieved / target;
+
+    if (ratio >= 1.0) return 100.0; // 100% completion
+    if (ratio >= 0.6) return 50.0; // 60-99% completion
+    if (ratio >= 0.2) return 0.0; // 20-59% no change
+    if (ratio > 0) return 0.0; // 1-19% no change
+    return -100.0; // 0% full decay
+  }
+
+  /// Check if two dates are the same day.
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  /// Get the current effective date (accounting for 4am boundary).
+  Future<DateTime> getCurrentEffectiveDate() {
+    return _preferencesRepository.getEffectiveDate(DateTime.now());
+  }
+}
