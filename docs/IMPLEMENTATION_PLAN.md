@@ -491,6 +491,32 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 
 ---
 
+### Milestone 16: Smart Habit Reframing (Breaking Bad Habits)
+**Status**: Planned
+
+Atomize handles breaking bad habits through positive framing — no separate feature needed. This milestone adds a smart suggestion to help users reframe negative habits.
+
+- [ ] Detect trigger words in habit name field during creation
+- [ ] Show reframing suggestion banner when negative framing detected
+- [ ] Suggest specific positive reframes based on detected topic
+
+**Trigger words:**
+- Action: "stop", "quit", "reduce", "less", "avoid", "no more", "cut"
+- Topics: "smoking", "alcohol", "drinking", "phone", "sugar", "junk food", "caffeine"
+
+**Suggested reframes:**
+| User types... | Suggest... |
+|---------------|------------|
+| "quit smoking" | "Smoke-free day" |
+| "reduce phone" | "Phone under 30 mins" |
+| "stop drinking" | "Alcohol-free day" |
+| "less sugar" | "Sugar-free day" |
+
+**Files to modify:**
+- `lib/presentation/screens/create_habit/create_habit_screen.dart`
+
+---
+
 ## Future Phases
 
 ### Phase 2: Enhanced Habits (V1.1) — ✅ Complete
@@ -503,6 +529,7 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 - Notification style system (7 styles)
 - Notification learning (ML-lite)
 - Smart habit templates
+- Smart habit reframing (M16) — help users frame "breaking" habits positively
 - History editing with credit percentages
 - Weekly summary system
 - ~~Break mode~~ ✅ Done (M10)

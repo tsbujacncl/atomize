@@ -524,6 +524,32 @@ if (activeHabits >= 6) {
 }
 ```
 
+### 2.9 Breaking Bad Habits
+
+Atomize handles breaking bad habits **without any separate feature or special code**. Users simply frame their habit positively:
+
+| Instead of... | Frame as... |
+|---------------|-------------|
+| "Quit smoking" | "Smoke-free day" |
+| "Reduce phone use" | "Phone under 30 mins" |
+| "Max 3 drinks per week" | "Alcohol-free day 4x per week" |
+
+**Why this works:**
+- Every completion is a win — tapping the flame means success
+- Weekly summary reads naturally: "Smoke-free day: 72 → 81 — 6/7 days"
+- Score/maturity handles psychology perfectly — a slip drops score a few points, not to zero
+- Matches reality: someone 5 months into quitting who has one cigarette hasn't lost everything
+
+**Smart reframing suggestion:**
+When users type trigger words like "stop", "quit", "reduce", "less", or items like "smoking", "alcohol", "phone", the app gently suggests reframing:
+
+> 💡 Tip: Try framing it as what you WILL do: "Smoke-free day" — this way every completion is a win!
+
+**No special code needed:**
+- Notification styles (Minimal, Purpose-driven) work for both habit types
+- Purpose prompts use habit name directly ("How does Smoke-free day make you feel?")
+- No database changes, no new screens, no sync complexity
+
 ---
 
 ## 3. Notification System

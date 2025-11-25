@@ -49,14 +49,95 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
   String? _afterHabitId; // habit stacking
   bool _isSaving = false;
 
+  // Reframing suggestion state
+  String? _reframeSuggestion;
+
+  // Trigger words for detecting negative habit framing
+  static const _actionTriggers = [
+    'stop',
+    'quit',
+    'reduce',
+    'less',
+    'avoid',
+    'no more',
+    'cut',
+    'don\'t',
+    'dont',
+  ];
+
+  // Topic-specific reframe suggestions
+  static const _reframeSuggestions = {
+    'smoking': 'Smoke-free day',
+    'smoke': 'Smoke-free day',
+    'cigarette': 'Smoke-free day',
+    'vape': 'Vape-free day',
+    'vaping': 'Vape-free day',
+    'alcohol': 'Alcohol-free day',
+    'drinking': 'Alcohol-free day',
+    'drink': 'Alcohol-free day',
+    'beer': 'Alcohol-free day',
+    'wine': 'Alcohol-free day',
+    'phone': 'Phone under 30 mins',
+    'screen': 'Screen time under 30 mins',
+    'social media': 'Social media free day',
+    'sugar': 'Sugar-free day',
+    'sweets': 'Sugar-free day',
+    'candy': 'Sugar-free day',
+    'junk food': 'Healthy eating day',
+    'junk': 'Healthy eating day',
+    'fast food': 'Home-cooked meal day',
+    'caffeine': 'Caffeine-free day',
+    'coffee': 'Caffeine-free day',
+    'soda': 'Soda-free day',
+    'gambling': 'Gambling-free day',
+    'gaming': 'Gaming under 1 hour',
+    'snacking': 'Mindful eating day',
+    'nail biting': 'Nail care day',
+    'procrastinat': 'Focus time day',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController.addListener(_checkForReframeSuggestion);
+  }
+
   @override
   void dispose() {
+    _nameController.removeListener(_checkForReframeSuggestion);
     _nameController.dispose();
     _locationController.dispose();
     _whyController.dispose();
     _countTargetController.dispose();
     _weeklyTargetController.dispose();
     super.dispose();
+  }
+
+  void _checkForReframeSuggestion() {
+    final text = _nameController.text.toLowerCase();
+
+    // Check if any action trigger word is present
+    final hasActionTrigger = _actionTriggers.any((trigger) => text.contains(trigger));
+
+    if (hasActionTrigger) {
+      // Try to find a specific reframe suggestion
+      String? suggestion;
+      for (final entry in _reframeSuggestions.entries) {
+        if (text.contains(entry.key)) {
+          suggestion = entry.value;
+          break;
+        }
+      }
+
+      // Use generic suggestion if no specific one found
+      suggestion ??= 'a positive action';
+
+      if (_reframeSuggestion != suggestion) {
+        setState(() => _reframeSuggestion = suggestion);
+      }
+    } else if (_reframeSuggestion != null) {
+      setState(() => _reframeSuggestion = null);
+    }
   }
 
   @override
@@ -105,6 +186,12 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
                 validator: _validateName,
                 autovalidateMode: AutovalidateMode.onUserInteraction,
               ),
+
+              // Reframing suggestion banner
+              if (_reframeSuggestion != null) ...[
+                const Gap(12),
+                _ReframeSuggestionBanner(suggestion: _reframeSuggestion!),
+              ],
               const Gap(24),
 
               // Type - Habit type selector
@@ -651,5 +738,77 @@ class _HabitStackSelector extends ConsumerWidget {
     if (selected != null) {
       onHabitChanged(selected.isEmpty ? null : selected);
     }
+  }
+}
+
+/// Banner suggesting positive reframing for breaking bad habits.
+class _ReframeSuggestionBanner extends StatelessWidget {
+  final String suggestion;
+
+  const _ReframeSuggestionBanner({required this.suggestion});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isGeneric = suggestion == 'a positive action';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '💡',
+            style: TextStyle(fontSize: 18),
+          ),
+          const Gap(12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tip: Frame it positively',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: theme.colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Gap(4),
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: isGeneric
+                            ? 'Try framing it as what you WILL do — this way every completion is a win!'
+                            : 'Try: ',
+                      ),
+                      if (!isGeneric) ...[
+                        TextSpan(
+                          text: '"$suggestion"',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        const TextSpan(
+                          text: ' — every completion is a win!',
+                        ),
+                      ],
+                    ],
+                  ),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
