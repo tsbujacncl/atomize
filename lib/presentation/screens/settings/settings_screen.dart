@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/preferences_provider.dart';
 import '../../widgets/atomize_logo.dart';
 import 'account_screen.dart';
+import 'archived_habits_screen.dart';
 
 /// Settings screen with app preferences.
 class SettingsScreen extends ConsumerWidget {
@@ -55,6 +56,23 @@ class _SettingsContent extends ConsumerWidget {
               ),
             );
           },
+        ),
+        const Gap(8),
+        // Archived Habits link
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ListTile(
+            leading: const Icon(Icons.archive_outlined),
+            title: const Text('Archived Habits'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const ArchivedHabitsScreen(),
+                ),
+              );
+            },
+          ),
         ),
 
         const Divider(height: 32),
@@ -563,15 +581,26 @@ class _BreakModeCard extends StatelessWidget {
                 ],
               ),
               const Gap(16),
-              if (isInBreakMode)
+              if (isInBreakMode) ...[
+                // Explanation of what break mode does
+                Text(
+                  '• Notifications paused',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const Gap(4),
+                Text(
+                  '• Scores won\'t decay',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const Gap(16),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: onCancelBreak,
                     child: const Text('End Break Early'),
                   ),
-                )
-              else
+                ),
+              ] else
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

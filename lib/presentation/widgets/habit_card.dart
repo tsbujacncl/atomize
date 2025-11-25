@@ -107,20 +107,12 @@ class HabitCard extends StatelessWidget {
               ),
 
               // Score indicator
-              Column(
-                children: [
-                  Text(
-                    '${score.round()}%',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.getFlameColor(score),
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  Text(
-                    'score',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
+              Text(
+                '${score.round()}',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppColors.getFlameColor(score),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
             ],
           ),

@@ -210,7 +210,12 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
                   const Gap(24),
 
                   // Habit Stacking (optional)
-                  _buildSectionLabel(context, 'Stack After'),
+                  _buildSectionLabel(context, 'Build a Routine'),
+                  const Gap(4),
+                  Text(
+                    'Do this habit right after another one.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                   const Gap(8),
                   _HabitStackSelector(
                     selectedHabitId: _afterHabitId,
@@ -218,11 +223,6 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
                     onHabitChanged: (habitId) {
                       setState(() => _afterHabitId = habitId);
                     },
-                  ),
-                  const Gap(8),
-                  Text(
-                    'Link habits together: do this after completing another habit.',
-                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const Gap(40),
 

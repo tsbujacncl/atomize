@@ -170,14 +170,24 @@ class _HabitList extends ConsumerWidget {
           error: (_, __) => const SizedBox.shrink(),
         ),
 
-        // Today section header
+        // Today section header with completion summary
         Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          child: Text(
-            'Today',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Today',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const Gap(4),
+              Text(
+                '${completed.length} of ${habits.length} completed',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
           ),
         ),
 
