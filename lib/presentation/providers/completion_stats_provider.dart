@@ -24,12 +24,14 @@ class CompletionStats {
   final int totalDays;
   final double percentage;
   final StatsPeriod period;
+  final double? averageScore;
 
   const CompletionStats({
     required this.completedDays,
     required this.totalDays,
     required this.percentage,
     required this.period,
+    this.averageScore,
   });
 
   static const empty = CompletionStats(
@@ -83,6 +85,23 @@ final completionStatsProvider = FutureProvider.family<CompletionStats, ({String 
       endDate,
     );
 
+    // Get completions to calculate average score
+    final completions = await completionRepo.getInRange(
+      params.habitId,
+      startDate,
+      endDate,
+    );
+
+    // Calculate average score from completions
+    double? averageScore;
+    if (completions.isNotEmpty) {
+      final totalScore = completions.fold<double>(
+        0,
+        (sum, c) => sum + c.scoreAtCompletion,
+      );
+      averageScore = totalScore / completions.length;
+    }
+
     // Calculate total days in the range (including today)
     final totalDays = today.difference(startDate).inDays + 1;
 
@@ -94,6 +113,7 @@ final completionStatsProvider = FutureProvider.family<CompletionStats, ({String 
       totalDays: totalDays,
       percentage: percentage,
       period: params.period,
+      averageScore: averageScore,
     );
   },
 );

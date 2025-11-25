@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../../data/database/app_database.dart';
+import '../../providers/habit_provider.dart';
 import '../../providers/purpose_prompt_provider.dart';
 import '../../providers/today_habits_provider.dart';
 import '../../providers/score_provider.dart';
@@ -10,6 +12,7 @@ import '../../widgets/atomize_logo.dart';
 import '../../widgets/habit_card.dart';
 import '../create_habit/create_habit_screen.dart';
 import '../habit_detail/deep_purpose_screen.dart';
+import '../habit_detail/edit_habit_screen.dart';
 import '../settings/settings_screen.dart';
 
 /// Main home screen displaying today's habits.
@@ -203,18 +206,7 @@ class _HabitList extends ConsumerWidget {
             ),
           ),
           ...incomplete.map(
-            (habit) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: HabitCard(
-                todayHabit: habit,
-                onQuickComplete: habit.isCountType
-                    ? null
-                    : () => _quickCompleteHabit(ref, habit.habit.id),
-                onCountIncrement: habit.isCountType
-                    ? () => _incrementCount(ref, habit.habit.id)
-                    : null,
-              ),
-            ),
+            (habit) => _buildHabitCard(context, ref, habit),
           ),
         ],
 
@@ -230,17 +222,194 @@ class _HabitList extends ConsumerWidget {
             ),
           ),
           ...completed.map(
-            (habit) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: HabitCard(
-                todayHabit: habit,
-                onQuickComplete: null, // Already completed
-              ),
-            ),
+            (habit) => _buildHabitCard(context, ref, habit),
           ),
         ],
       ],
     );
+  }
+
+  Widget _buildHabitCard(
+    BuildContext context,
+    WidgetRef ref,
+    TodayHabit habit,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GestureDetector(
+        onLongPressStart: (details) {
+          _showHabitContextMenu(
+            context,
+            ref,
+            habit.habit,
+            details.globalPosition,
+          );
+        },
+        child: HabitCard(
+          todayHabit: habit,
+          onQuickComplete: habit.isCountType || habit.isCompletedToday
+              ? null
+              : () => _quickCompleteHabit(ref, habit.habit.id),
+          onCountIncrement: habit.isCountType && !habit.isCompletedToday
+              ? () => _incrementCount(ref, habit.habit.id)
+              : null,
+        ),
+      ),
+    );
+  }
+
+  void _showHabitContextMenu(
+    BuildContext context,
+    WidgetRef ref,
+    Habit habit,
+    Offset position,
+  ) {
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(position.dx, position.dy, 0, 0),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        PopupMenuItem(
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(Icons.edit_outlined,
+                  size: 20, color: Theme.of(context).colorScheme.onSurface),
+              const Gap(12),
+              const Text('Edit'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'archive',
+          child: Row(
+            children: [
+              Icon(Icons.archive_outlined,
+                  size: 20, color: Theme.of(context).colorScheme.onSurface),
+              const Gap(12),
+              const Text('Archive'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline, size: 20, color: AppColors.error),
+              const Gap(12),
+              Text('Delete', style: TextStyle(color: AppColors.error)),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == null || !context.mounted) return;
+      switch (value) {
+        case 'edit':
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => EditHabitScreen(habitId: habit.id),
+            ),
+          );
+          break;
+        case 'archive':
+          _showArchiveDialog(context, ref, habit);
+          break;
+        case 'delete':
+          _showDeleteDialog(context, ref, habit);
+          break;
+      }
+    });
+  }
+
+  Future<void> _showArchiveDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Habit habit,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Archive Habit'),
+        content: Text(
+          'Archive "${habit.name}"?\n\n'
+          'The habit will be hidden but its history and progress will be preserved. '
+          'You can restore it later from Settings.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Archive'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await ref.read(habitNotifierProvider.notifier).archiveHabit(habit.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${habit.name} archived'),
+            action: SnackBarAction(
+              label: 'Undo',
+              onPressed: () {
+                ref.read(habitNotifierProvider.notifier).unarchiveHabit(habit.id);
+              },
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showDeleteDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Habit habit,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Habit'),
+        content: Text(
+          'Permanently delete "${habit.name}"?\n\n'
+          'This will remove all history and progress. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await ref.read(habitNotifierProvider.notifier).deleteHabit(habit.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${habit.name} deleted')),
+        );
+      }
+    }
   }
 
   Future<void> _quickCompleteHabit(WidgetRef ref, String habitId) async {

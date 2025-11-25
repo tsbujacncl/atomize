@@ -19,11 +19,15 @@ class HabitCard extends StatelessWidget {
   /// Called when count is incremented for count-type habits.
   final VoidCallback? onCountIncrement;
 
+  /// Called when the card is long-pressed (for context menu).
+  final VoidCallback? onLongPress;
+
   const HabitCard({
     super.key,
     required this.todayHabit,
     this.onQuickComplete,
     this.onCountIncrement,
+    this.onLongPress,
   });
 
   @override
@@ -42,6 +46,7 @@ class HabitCard extends StatelessWidget {
             ),
           );
         },
+        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(

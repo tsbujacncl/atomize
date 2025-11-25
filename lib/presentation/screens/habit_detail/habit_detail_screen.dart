@@ -316,7 +316,7 @@ class _LargeFlameSection extends StatelessWidget {
   }
 }
 
-/// Stats section showing score, completion rate, and created date
+/// Stats section showing score and completion rate for the selected period
 class _StatsSection extends ConsumerWidget {
   final Habit habit;
   final StatsPeriod period;
@@ -332,44 +332,53 @@ class _StatsSection extends ConsumerWidget {
       )),
     );
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _StatItem(
-          label: 'Score',
-          value: '${habit.score.round()}%',
-          color: AppColors.getFlameColor(habit.score),
-        ),
-        statsAsync.when(
-          data: (stats) => _StatItem(
-            label: 'Completed',
-            value: '${stats.percentage.round()}%',
-            subtitle: '${stats.completedDays}/${stats.totalDays} days',
+    return statsAsync.when(
+      data: (stats) {
+        final avgScore = stats.averageScore ?? 0;
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _StatItem(
+              label: 'Score',
+              value: '${avgScore.round()}',
+              color: AppColors.getFlameColor(avgScore),
+            ),
+            _StatItem(
+              label: 'Completed',
+              value: '${stats.completedDays}/${stats.totalDays}',
+              subtitle: 'days',
+            ),
+          ],
+        );
+      },
+      loading: () => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _StatItem(
+            label: 'Score',
+            value: '${habit.score.round()}',
+            color: AppColors.getFlameColor(habit.score),
           ),
-          loading: () => const _StatItem(
+          const _StatItem(
             label: 'Completed',
             value: '...',
           ),
-          error: (_, __) => const _StatItem(
+        ],
+      ),
+      error: (_, __) => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          const _StatItem(
+            label: 'Score',
+            value: '-',
+          ),
+          const _StatItem(
             label: 'Completed',
             value: '-',
           ),
-        ),
-        _StatItem(
-          label: 'Created',
-          value: _formatDate(habit.createdAt),
-        ),
-      ],
+        ],
+      ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date).inDays;
-    if (diff == 0) return 'Today';
-    if (diff == 1) return 'Yesterday';
-    if (diff < 7) return '$diff days ago';
-    return DateFormat.MMMd().format(date);
   }
 }
 

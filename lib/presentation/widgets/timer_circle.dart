@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 /// A circular timer widget with a flame icon in the center.
 ///
-/// Displays progress as a ring that fills clockwise.
-class TimerCircle extends StatelessWidget {
+/// Displays progress as a ring that fills clockwise with smooth animation.
+class TimerCircle extends StatefulWidget {
   /// Progress from 0.0 (not started) to 1.0 (complete).
   final double progress;
 
@@ -31,65 +31,128 @@ class TimerCircle extends StatelessWidget {
   });
 
   @override
+  State<TimerCircle> createState() => _TimerCircleState();
+}
+
+class _TimerCircleState extends State<TimerCircle>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _progressAnimation;
+  double _previousProgress = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _previousProgress = widget.progress;
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    _progressAnimation = Tween<double>(
+      begin: widget.progress,
+      end: widget.progress,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.linear,
+    ));
+  }
+
+  @override
+  void didUpdateWidget(TimerCircle oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.progress != widget.progress) {
+      // Animate from current animated value to new progress
+      _previousProgress = _progressAnimation.value;
+      _progressAnimation = Tween<double>(
+        begin: _previousProgress,
+        end: widget.progress,
+      ).animate(CurvedAnimation(
+        parent: _controller,
+        curve: Curves.linear,
+      ));
+      _controller.forward(from: 0.0);
+    }
+
+    // Stop animation when paused
+    if (widget.isPaused && !oldWidget.isPaused) {
+      _controller.stop();
+    } else if (!widget.isPaused && oldWidget.isPaused) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final progressColor =
-        isCompleted ? Colors.green : theme.colorScheme.primary;
+        widget.isCompleted ? Colors.green : theme.colorScheme.primary;
 
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Background ring
-          CustomPaint(
-            size: Size(size, size),
-            painter: _CircleProgressPainter(
-              progress: progress,
-              backgroundColor: theme.colorScheme.surfaceContainerHighest,
-              progressColor: progressColor,
-              strokeWidth: 12,
-            ),
-          ),
-
-          // Center content
-          Column(
-            mainAxisSize: MainAxisSize.min,
+    return AnimatedBuilder(
+      animation: _progressAnimation,
+      builder: (context, child) {
+        final animatedProgress = _progressAnimation.value;
+        return SizedBox(
+          width: widget.size,
+          height: widget.size,
+          child: Stack(
+            alignment: Alignment.center,
             children: [
-              // Flame icon that grows with progress
-              _AnimatedFlame(
-                progress: progress,
-                isCompleted: isCompleted,
-                isPaused: isPaused,
-              ),
-
-              const SizedBox(height: 8),
-
-              // Time display
-              Text(
-                timeText,
-                style: theme.textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+              // Background ring
+              CustomPaint(
+                size: Size(widget.size, widget.size),
+                painter: _CircleProgressPainter(
+                  progress: animatedProgress,
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  progressColor: progressColor,
+                  strokeWidth: 12,
                 ),
               ),
 
-              if (isPaused) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'PAUSED',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.secondary,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
+              // Center content
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Flame icon that grows with progress
+                  _AnimatedFlame(
+                    progress: animatedProgress,
+                    isCompleted: widget.isCompleted,
+                    isPaused: widget.isPaused,
                   ),
-                ),
-              ],
+
+                  const SizedBox(height: 8),
+
+                  // Time display
+                  Text(
+                    widget.timeText,
+                    style: theme.textTheme.displaySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+
+                  if (widget.isPaused) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'PAUSED',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.secondary,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

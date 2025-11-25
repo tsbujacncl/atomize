@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 import 'tables/habits_table.dart';
 import 'tables/completions_table.dart';
@@ -43,26 +44,43 @@ class AppDatabase extends _$AppDatabase {
         }
       },
       beforeOpen: (details) async {
+        debugPrint('📦 Database beforeOpen - wasCreated: ${details.wasCreated}, '
+            'from: ${details.versionBefore}, to: ${details.versionNow}');
+
         // Ensure default preferences row exists (fixes missing row after migrations)
         final existingPrefs = await (select(userPreferences)
               ..where((p) => p.id.equals(1)))
             .getSingleOrNull();
         if (existingPrefs == null) {
+          debugPrint('📦 Creating default preferences row');
           await into(userPreferences).insert(
             UserPreferencesCompanion.insert(),
           );
+        } else {
+          debugPrint('📦 Preferences exist - onboardingCompleted: ${existingPrefs.onboardingCompleted}');
         }
+
+        // Debug: count habits
+        final habitCount = await (selectOnly(habits)..addColumns([habits.id.count()])).getSingle();
+        debugPrint('📦 Habit count: ${habitCount.read(habits.id.count())}');
       },
     );
   }
 }
 
 QueryExecutor _openConnection() {
+  debugPrint('📦 Opening Atomize database...');
   return driftDatabase(
     name: 'atomize',
     web: DriftWebOptions(
       sqlite3Wasm: Uri.parse('sqlite3.wasm'),
       driftWorker: Uri.parse('drift_worker.js'),
+      onResult: (result) {
+        if (result.missingFeatures.isNotEmpty) {
+          debugPrint('📦 Missing browser features: ${result.missingFeatures}');
+        }
+        debugPrint('📦 Storage: ${result.chosenImplementation}');
+      },
     ),
   );
 }
