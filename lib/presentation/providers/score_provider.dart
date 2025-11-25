@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/enums.dart';
 import '../../domain/services/score_service.dart';
+import 'notification_provider.dart';
 import 'repository_providers.dart';
 import 'habit_provider.dart';
 import 'today_habits_provider.dart';
@@ -37,6 +38,10 @@ class CompletionNotifier extends Notifier<void> {
       source: source,
       creditPercentage: creditPercentage,
     );
+
+    // Cancel pending notifications for this habit
+    final notificationService = ref.read(notificationServiceProvider);
+    await notificationService.cancelHabitNotifications(habitId);
 
     // Refresh related providers
     ref.invalidate(habitNotifierProvider);

@@ -5,7 +5,7 @@
 This document tracks the development progress of Atomize V1.2, a complete redesign focusing on anti-addictive, supportive habit tracking with flame-based scoring.
 
 **Last Updated**: 2025-11-25
-**Current Version**: V1.2 Foundation (Milestones 0-7)
+**Current Version**: V1.2 Foundation (Milestones 0-8)
 **Branch**: master
 **Design Document**: [DESIGN_DOCUMENT_V1.2.md](./DESIGN_DOCUMENT_V1.2.md)
 
@@ -249,19 +249,30 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 
 ---
 
-## Pending Milestones
+### ✅ Milestone 8: Basic Notifications
+**Status**: Complete
 
-### ⏳ Milestone 8: Basic Notifications
-**Status**: Pending
+- [x] Create `NotificationService`
+- [x] Initialize notifications in `main.dart`
+- [x] Schedule pre-reminder (30 min before habit time)
+- [x] Schedule post-reminder (30 min after if not completed)
+- [x] Add quiet hours logic (default 10pm-7am)
+- [x] Cancel notifications when habit completed
 
-- [ ] Create `NotificationService`
-- [ ] Initialize notifications in `main.dart`
-- [ ] Schedule pre-reminder (30 min before habit time)
-- [ ] Schedule post-reminder (30 min after if not completed)
-- [ ] Add quiet hours logic (default 10pm-7am)
-- [ ] Cancel notifications when habit completed
+**Files Created/Modified**:
+- `lib/domain/services/notification_service.dart` (new)
+- `lib/presentation/providers/notification_provider.dart` (new)
+- `lib/presentation/providers/score_provider.dart` (updated - cancel on completion)
+- `lib/main.dart` (updated - initialize notifications)
+
+**Notes**:
+- Notifications are skipped on web (not supported)
+- Uses flutter_local_notifications + timezone packages
+- Respects quiet hours, break mode, and notification settings from preferences
 
 ---
+
+## Pending Milestones
 
 ### ⏳ Milestone 9: Progress Bar Chart
 **Status**: Pending
@@ -341,6 +352,7 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 ## Changelog
 
 ### 2025-11-25
+- **Milestone 8 Complete**: Basic Notifications - Pre/post reminders with quiet hours and break mode support
 - **M7 Enhancement**: Replaced maturity display with completion rate + time period selector (1M | 3M | 1Y | All)
 - **Milestone 7 Complete**: Habit Detail Screen - Large flame, stats, details, purpose display, edit/archive/delete functionality
 - **Milestone 6 Complete**: Create Habit Screen - Full form with What/When/Where/Why fields, time picker, validation, and save functionality
