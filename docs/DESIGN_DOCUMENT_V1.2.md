@@ -1346,22 +1346,22 @@ If donations don't cover costs:
 
 ## 11. Development Phases
 
-### Phase 1: Core MVP (V1.0)
+### Phase 1: Core MVP (V1.0) ✅
 
-- [ ] Habit CRUD (binary type only)
-- [ ] Score system with flame visualisation
-- [ ] Basic completion tracking
-- [ ] Heatmap/bar chart view
-- [ ] Local SQLite storage
-- [ ] Basic notifications (fixed time)
-- [ ] Light/dark mode
+- [x] Habit CRUD (binary type only)
+- [x] Score system with flame visualisation
+- [x] Basic completion tracking
+- [x] Heatmap/bar chart view
+- [x] Local SQLite storage
+- [x] Basic notifications (fixed time)
+- [x] Light/dark mode
 
-### Phase 2: Enhanced Habits (V1.1)
+### Phase 2: Enhanced Habits (V1.1) ✅
 
-- [ ] Count-type habits
-- [ ] Weekly-type habits
-- [ ] Purpose prompts (feelings/identity/outcomes)
-- [ ] Habit stacking (after X, do Y)
+- [x] Count-type habits
+- [x] Weekly-type habits
+- [x] Purpose prompts (feelings/identity/outcomes after 7 days)
+- [x] Habit stacking (after X, do Y)
 
 ### Phase 3: Smart Features (V1.2)
 
@@ -1371,12 +1371,13 @@ If donations don't cover costs:
 - [ ] History editing with graduated credit
 - [ ] Weekly summary system
 - [ ] Past summaries view
-- [ ] Break mode (notification mute)
+- [x] Break mode (notification mute)
 
-### Phase 4: Sync & Polish (V1.3)
+### Phase 4: Sync & Polish (V1.3) — Partial
 
-- [ ] Supabase integration (optional sync)
-- [ ] Auth (email, Apple, Google, anonymous)
+- [x] Supabase integration (optional sync)
+- [x] Auth (anonymous auto-sign-in)
+- [ ] Auth (email, Apple, Google linking)
 - [ ] Account sync prompt flow
 - [ ] Email weekly summaries
 - [ ] iOS/Android widgets
@@ -1490,6 +1491,6 @@ Atomize optimises for:
 
 ---
 
-*Document version: 1.2*
-*Last updated: November 2025*
+*Document version: 1.2.1*
+*Last updated: November 25, 2025*
 *Author: Tyr + Claude*

@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
+import '../../../data/database/app_database.dart';
+import '../../providers/purpose_prompt_provider.dart';
 import '../../providers/today_habits_provider.dart';
 import '../../providers/score_provider.dart';
 import '../../widgets/atomize_logo.dart';
 import '../../widgets/habit_card.dart';
 import '../create_habit/create_habit_screen.dart';
+import '../habit_detail/deep_purpose_screen.dart';
 import '../settings/settings_screen.dart';
 
 /// Main home screen displaying today's habits.
@@ -147,9 +150,22 @@ class _HabitList extends ConsumerWidget {
     final incomplete = habits.where((h) => !h.isCompletedToday).toList();
     final completed = habits.where((h) => h.isCompletedToday).toList();
 
+    // Check for purpose prompt
+    final nextPurposePrompt = ref.watch(nextPurposePromptProvider);
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       children: [
+        // Purpose prompt banner
+        nextPurposePrompt.when(
+          data: (habit) {
+            if (habit == null) return const SizedBox.shrink();
+            return _PurposePromptBanner(habit: habit);
+          },
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+        ),
+
         // Today section header
         Padding(
           padding: const EdgeInsets.only(bottom: 16),
@@ -177,7 +193,12 @@ class _HabitList extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: HabitCard(
                 todayHabit: habit,
-                onQuickComplete: () => _quickCompleteHabit(ref, habit.habit.id),
+                onQuickComplete: habit.isCountType
+                    ? null
+                    : () => _quickCompleteHabit(ref, habit.habit.id),
+                onCountIncrement: habit.isCountType
+                    ? () => _incrementCount(ref, habit.habit.id)
+                    : null,
               ),
             ),
           ),
@@ -212,5 +233,85 @@ class _HabitList extends ConsumerWidget {
     await ref.read(completionNotifierProvider.notifier).completeHabit(
           habitId: habitId,
         );
+  }
+
+  Future<void> _incrementCount(WidgetRef ref, String habitId) async {
+    await ref.read(completionNotifierProvider.notifier).incrementCount(
+          habitId: habitId,
+        );
+  }
+}
+
+/// Banner prompting user to add deep purpose for a habit.
+class _PurposePromptBanner extends StatelessWidget {
+  final Habit habit;
+
+  const _PurposePromptBanner({required this.habit});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final daysSinceCreated = DateTime.now().difference(habit.createdAt).inDays;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      color: theme.colorScheme.primaryContainer,
+      child: InkWell(
+        onTap: () => _openDeepPurposeScreen(context),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.lightbulb_outline,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+              ),
+              const Gap(16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Deepen your "${habit.name}"',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Gap(4),
+                    Text(
+                      "$daysSinceCreated days in! Let's connect it to something deeper.",
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openDeepPurposeScreen(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DeepPurposeScreen(habit: habit),
+      ),
+    );
   }
 }

@@ -50,6 +50,27 @@ class CompletionNotifier extends Notifier<void> {
     return newScore;
   }
 
+  /// Increment count for a count-type habit.
+  ///
+  /// Returns the new total count for today.
+  Future<int> incrementCount({
+    required String habitId,
+    int increment = 1,
+    CompletionSource source = CompletionSource.manual,
+  }) async {
+    final newCount = await _scoreService.incrementCount(
+      habitId: habitId,
+      increment: increment,
+      source: source,
+    );
+
+    // Refresh related providers
+    ref.invalidate(habitNotifierProvider);
+    ref.invalidate(todayHabitsProvider);
+
+    return newCount;
+  }
+
   /// Apply day-end decay to all habits.
   Future<void> applyDayEndDecay() async {
     await _scoreService.applyDayEndDecay();

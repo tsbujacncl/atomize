@@ -10,6 +10,7 @@ import '../../providers/completion_stats_provider.dart';
 import '../../providers/habit_provider.dart';
 import '../../widgets/flame_widget.dart';
 import '../../widgets/progress_bar_chart.dart';
+import 'deep_purpose_screen.dart';
 import 'edit_habit_screen.dart';
 
 /// Screen displaying detailed information about a habit.
@@ -457,13 +458,18 @@ class _ProgressChartSection extends ConsumerWidget {
 }
 
 /// Details section showing when, where
-class _DetailsSection extends StatelessWidget {
+class _DetailsSection extends ConsumerWidget {
   final Habit habit;
 
   const _DetailsSection({required this.habit});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch for the "after" habit if stacked
+    final afterHabitAsync = habit.afterHabitId != null
+        ? ref.watch(habitByIdProvider(habit.afterHabitId!))
+        : null;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -492,13 +498,62 @@ class _DetailsSection extends StatelessWidget {
             _DetailRow(
               icon: Icons.category_outlined,
               label: 'Type',
-              value: habit.type.substring(0, 1).toUpperCase() +
-                  habit.type.substring(1),
+              value: _getTypeDisplay(habit),
             ),
+            if (habit.type == 'count' && habit.countTarget != null) ...[
+              const Gap(12),
+              _DetailRow(
+                icon: Icons.add_circle_outline,
+                label: 'Target',
+                value: '${habit.countTarget} per day',
+              ),
+            ],
+            if (habit.type == 'weekly' && habit.weeklyTarget != null) ...[
+              const Gap(12),
+              _DetailRow(
+                icon: Icons.calendar_view_week,
+                label: 'Target',
+                value: '${habit.weeklyTarget} per week',
+              ),
+            ],
+            // Habit stacking info
+            if (afterHabitAsync != null) ...[
+              const Gap(12),
+              afterHabitAsync.when(
+                data: (afterHabit) => _DetailRow(
+                  icon: Icons.link,
+                  label: 'After',
+                  value: afterHabit?.name ?? 'Unknown habit',
+                ),
+                loading: () => const _DetailRow(
+                  icon: Icons.link,
+                  label: 'After',
+                  value: 'Loading...',
+                ),
+                error: (_, __) => const _DetailRow(
+                  icon: Icons.link,
+                  label: 'After',
+                  value: 'Error loading',
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  String _getTypeDisplay(Habit habit) {
+    switch (habit.type) {
+      case 'binary':
+        return 'Yes/No';
+      case 'count':
+        return 'Count';
+      case 'weekly':
+        return 'Weekly';
+      default:
+        return habit.type.substring(0, 1).toUpperCase() + habit.type.substring(1);
+    }
   }
 
   String _formatTime(String scheduledTime) {
@@ -559,6 +614,11 @@ class _PurposeSection extends StatelessWidget {
 
   const _PurposeSection({required this.habit});
 
+  bool get _hasDeepPurpose =>
+      (habit.feelingWhy != null && habit.feelingWhy!.isNotEmpty) ||
+      (habit.identityWhy != null && habit.identityWhy!.isNotEmpty) ||
+      (habit.outcomeWhy != null && habit.outcomeWhy!.isNotEmpty);
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -567,11 +627,24 @@ class _PurposeSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Purpose',
-              style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Purpose',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                TextButton.icon(
+                  onPressed: () => _editPurpose(context),
+                  icon: Icon(_hasDeepPurpose ? Icons.edit : Icons.add, size: 18),
+                  label: Text(_hasDeepPurpose ? 'Edit' : 'Add'),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
             ),
-            const Gap(16),
+            const Gap(8),
             if (habit.quickWhy != null && habit.quickWhy!.isNotEmpty) ...[
               _PurposeItem(
                 label: 'Why',
@@ -599,8 +672,24 @@ class _PurposeSection extends StatelessWidget {
                 value: habit.outcomeWhy!,
               ),
             ],
+            if (!_hasDeepPurpose && (habit.quickWhy == null || habit.quickWhy!.isEmpty)) ...[
+              Text(
+                'Add a deeper purpose to stay motivated.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  void _editPurpose(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DeepPurposeScreen(habit: habit),
       ),
     );
   }

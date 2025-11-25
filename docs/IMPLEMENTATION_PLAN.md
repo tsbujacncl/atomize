@@ -5,7 +5,7 @@
 This document tracks the development progress of Atomize V1.2, a complete redesign focusing on anti-addictive, supportive habit tracking with flame-based scoring.
 
 **Last Updated**: 2025-11-25
-**Current Version**: V1.2 Foundation (Milestones 0-11)
+**Current Version**: V1.2 Foundation + Phase 2 + Auth (Milestones 0-15)
 **Branch**: master
 **Design Document**: [DESIGN_DOCUMENT_V1.2.md](./DESIGN_DOCUMENT_V1.2.md)
 
@@ -340,27 +340,179 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 
 ---
 
+### ✅ Milestone 12: Supabase Cloud Sync
+
+**Status**: Complete
+
+- [x] Add Supabase dependencies (supabase_flutter, connectivity_plus, flutter_secure_storage, flutter_dotenv)
+- [x] Create .env file for credentials (gitignored)
+- [x] Initialize Supabase in main.dart
+- [x] Create AuthService with anonymous sign-in
+- [x] Create ConnectivityService for online/offline detection
+- [x] Create SyncService for local-first sync
+- [x] Create LocalSyncQueue for offline operations
+- [x] Integrate sync hooks into HabitRepository and CompletionRepository
+- [x] Update app initialization flow with auth and sync
+- [x] Create Supabase schema SQL file
+
+**Architecture:**
+- Local-first: SQLite/Drift remains source of truth for immediate UI
+- Changes sync to Supabase in background
+- App works fully offline, queues operations for later sync
+- Anonymous auth auto-creates account on first launch
+- Server-wins conflict resolution (simplest approach)
+
+**Files Created:**
+- `lib/core/config/supabase_config.dart` - Config from .env
+- `lib/domain/services/auth_service.dart` - Anonymous/email auth
+- `lib/domain/services/connectivity_service.dart` - Network monitoring
+- `lib/domain/services/sync_service.dart` - Sync orchestration
+- `lib/data/sync/sync_queue.dart` - Offline queue
+- `lib/presentation/providers/supabase_provider.dart` - Supabase client provider
+- `lib/presentation/providers/auth_provider.dart` - Auth state management
+- `lib/presentation/providers/sync_provider.dart` - Sync state management
+- `supabase/schema.sql` - Database schema for Supabase
+- `.env` - Credentials (gitignored)
+- `.env.example` - Template for credentials
+
+**Files Modified:**
+- `pubspec.yaml` - Added Supabase dependencies
+- `lib/main.dart` - Initialize dotenv and Supabase
+- `lib/app.dart` - Auth and sync initialization
+- `lib/data/repositories/habit_repository.dart` - Sync hooks
+- `lib/data/repositories/completion_repository.dart` - Sync hooks
+- `lib/presentation/providers/repository_providers.dart` - Inject SyncService
+- `.gitignore` - Added .env
+
+---
+
+### ✅ Milestone 13: Weekly Habits
+
+**Status**: Complete
+
+- [x] Add weekly type to habit type selector (binary/count/weekly)
+- [x] Add weekly target field to create/edit screens (1-7 times per week)
+- [x] Update TodayHabitsProvider to calculate weekly progress (distinct completed days)
+- [x] Update HabitCard with weekly progress UI (progress ring with calendar icon)
+- [x] Update completion/decay logic for weekly habits (decay only at end of week if target not met)
+- [x] Update habit detail screen to show weekly target
+
+**How Weekly Habits Work:**
+- User sets a weekly target (e.g., "Exercise 3x per week")
+- Progress shows completed days this week (e.g., "2/3")
+- Can complete once per day, progress counts toward weekly goal
+- Decay only applies at end of week if target wasn't met (not daily)
+- Week starts on Monday, ends on Sunday
+
+**Files Modified:**
+- `lib/presentation/screens/create_habit/create_habit_screen.dart` - Weekly type + target
+- `lib/presentation/screens/habit_detail/edit_habit_screen.dart` - Weekly target editing
+- `lib/presentation/providers/habit_provider.dart` - weeklyTarget in updateHabit
+- `lib/data/repositories/habit_repository.dart` - weeklyTarget persistence
+- `lib/presentation/providers/today_habits_provider.dart` - Weekly progress calculation
+- `lib/presentation/widgets/habit_card.dart` - Weekly progress/completed buttons
+- `lib/domain/services/score_service.dart` - Weekly-aware decay logic
+- `lib/presentation/screens/habit_detail/habit_detail_screen.dart` - Display weekly target
+
+---
+
+### ✅ Milestone 14: Purpose Prompts & Habit Stacking
+
+**Status**: Complete
+
+- [x] Purpose prompts (after 7 days):
+  - Created `purpose_prompt_provider.dart` with providers to detect habits needing prompts
+  - Habits 7+ days old without deep purpose fields trigger a prompt banner
+  - Banner shows on home screen with "Deepen your [habit name]" CTA
+  - Created `deep_purpose_screen.dart` - 3-step wizard for feelings/identity/outcomes
+  - Each step has example chips for quick fill suggestions
+  - Purpose section in habit detail screen shows Add/Edit button
+- [x] Habit stacking:
+  - Added `afterHabitId` support to create/update methods in repository and provider
+  - Added `_HabitStackSelector` widget to create and edit habit screens
+  - Bottom sheet picker shows all existing habits to stack after
+  - "None (standalone habit)" option to remove stacking
+  - Habit detail screen shows "After: [habit name]" in details section
+
+**How Purpose Prompts Work:**
+- After 7 days with a habit, if no deep purpose is set, a banner appears on home screen
+- Tapping the banner opens a 3-step wizard (feelings, identity, outcomes)
+- Users can tap example chips or type their own responses
+- Saved purposes display in the habit detail screen
+
+**How Habit Stacking Works:**
+- When creating/editing a habit, select "Stack After" to link to another habit
+- Creates a chain: "After I [habit A], I will [habit B]"
+- Linked habit name displays in the details section of habit detail screen
+- Can be cleared by selecting "None (standalone habit)"
+
+**Files Created:**
+- `lib/presentation/providers/purpose_prompt_provider.dart`
+- `lib/presentation/screens/habit_detail/deep_purpose_screen.dart`
+
+**Files Modified:**
+- `lib/presentation/screens/home/home_screen.dart` - Purpose prompt banner
+- `lib/presentation/screens/habit_detail/habit_detail_screen.dart` - Purpose edit, stacking display
+- `lib/presentation/screens/create_habit/create_habit_screen.dart` - Habit stack selector
+- `lib/presentation/screens/habit_detail/edit_habit_screen.dart` - Habit stack selector
+- `lib/presentation/providers/habit_provider.dart` - afterHabitId support
+- `lib/data/repositories/habit_repository.dart` - afterHabitId in create/update
+
+---
+
+### ✅ Milestone 15: Account & Authentication
+**Status**: Complete
+
+- [x] Add `sign_in_with_apple` and `google_sign_in` packages
+- [x] Configure Google OAuth in Google Cloud Console (iOS + Web clients)
+- [x] Configure Google provider in Supabase dashboard
+- [x] Update `AuthService` with Apple and Google sign-in methods
+- [x] Create `AccountScreen` with:
+  - Account status card (Guest/Signed In)
+  - Apple Sign-In button (iOS only)
+  - Google Sign-In button
+  - Email sign-up/sign-in form with toggle
+  - Confirm password field for registration
+  - Forgot password functionality
+- [x] Add account section to Settings screen
+- [x] Configure iOS `Info.plist` with Google Sign-In URL schemes
+- [x] Fix platform detection for web compatibility (`kIsWeb` + `defaultTargetPlatform`)
+- [x] Fix `isAnonymous` detection to check both flag and email presence
+
+**Files Created:**
+- `lib/presentation/screens/settings/account_screen.dart`
+- `lib/presentation/providers/auth_provider.dart`
+
+**Files Modified:**
+- `lib/domain/services/auth_service.dart` - Apple/Google sign-in, password reset
+- `lib/presentation/screens/settings/settings_screen.dart` - Account section
+- `ios/Runner/Info.plist` - Google Sign-In configuration
+- `pubspec.yaml` - Added sign_in_with_apple, google_sign_in packages
+
+---
+
 ## Future Phases
 
-### Phase 2: Enhanced Habits (V1.1)
-- Count-type habits
-- Weekly-type habits
-- Purpose prompts (after 7 days)
-- Habit stacking
-- Smart habit templates
+### Phase 2: Enhanced Habits (V1.1) — ✅ Complete
+- ~~Count-type habits~~ ✅ Done (M13)
+- ~~Weekly-type habits~~ ✅ Done (M13)
+- ~~Purpose prompts (after 7 days)~~ ✅ Done (M14)
+- ~~Habit stacking~~ ✅ Done (M14)
 
 ### Phase 3: Smart Features (V1.2)
 - Notification style system (7 styles)
 - Notification learning (ML-lite)
+- Smart habit templates
 - History editing with credit percentages
 - Weekly summary system
-- Break mode
+- ~~Break mode~~ ✅ Done (M10)
 - Soft habit limits
 
-### Phase 4: Sync & Polish (V1.3)
-- Supabase setup
-- Authentication
-- Sync implementation
+### Phase 4: Sync & Polish (V1.3) — Partial
+- ~~Supabase setup~~ ✅ Done (M12)
+- ~~Anonymous auth~~ ✅ Done (M12)
+- ~~Local-first sync~~ ✅ Done (M12)
+- ~~Email/Apple/Google auth linking~~ ✅ Done (M15)
 - Email weekly summaries
 - Widgets (iOS/Android)
 - Calendar integration
@@ -380,6 +532,7 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 | Framework | Flutter 3.9.2+ |
 | State Management | flutter_riverpod 3.0.3 |
 | Database | drift 2.22.1 + sqlite3_flutter_libs |
+| Cloud Sync | supabase_flutter 2.8.0 |
 | Notifications | flutter_local_notifications 19.5.0 |
 | Fonts | google_fonts 6.3.2 |
 | Code Generation | build_runner, riverpod_generator, drift_dev |
@@ -389,6 +542,11 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 ## Changelog
 
 ### 2025-11-25
+- **Milestone 15 Complete**: Account & Authentication - Email/Apple/Google sign-in options, account screen with sign-up/sign-in toggle, password reset, Google OAuth configured
+- **Milestone 14 Complete (Phase 2 Done)**: Purpose Prompts & Habit Stacking - Banner prompts after 7 days for deep purpose, 3-step wizard for feelings/identity/outcomes, habit stacking selector in create/edit screens, linked habit display in details
+- **Milestone 13 Complete**: Weekly Habits - Added weekly habit type with flexible weekly targets (e.g., "exercise 3x per week"), weekly progress tracking, calendar-based decay
+- **Milestone 12 Complete**: Supabase Cloud Sync - Local-first sync with Supabase, anonymous auth, offline queue, connectivity monitoring
+- **Count-type Habits**: Added habit type selector (binary/count/weekly), count target field, progress ring UI, increment button
 - **Milestone 11 Complete**: Grace Window & Day Boundary - Multi-day decay handling, automatic decay on app start, 4am grace window for completing habits
 - **Milestone 10 Complete**: Settings & Onboarding - Full settings screen with theme, notifications, quiet hours, break mode, and about. Onboarding flow with 3 screens (welcome, create habit, tutorial). Reactive theme mode.
 - **Milestone 9 Complete**: Progress Bar Chart - Last 30 days completion history with flame-colored bars and stats chip

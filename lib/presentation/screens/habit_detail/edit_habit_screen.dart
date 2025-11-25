@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/database/app_database.dart';
+import '../../../domain/models/enums.dart';
 import '../../providers/habit_provider.dart';
 import '../../widgets/duration_picker.dart';
 
@@ -26,9 +27,13 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
   final _nameController = TextEditingController();
   final _locationController = TextEditingController();
   final _whyController = TextEditingController();
+  final _countTargetController = TextEditingController();
+  final _weeklyTargetController = TextEditingController();
 
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
+  HabitType _habitType = HabitType.binary;
   int? _timerDuration; // null = use default (2 min)
+  String? _afterHabitId; // habit stacking
   bool _isSaving = false;
   bool _isInitialized = false;
 
@@ -37,6 +42,8 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
     _nameController.dispose();
     _locationController.dispose();
     _whyController.dispose();
+    _countTargetController.dispose();
+    _weeklyTargetController.dispose();
     super.dispose();
   }
 
@@ -48,6 +55,13 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
     _locationController.text = habit.location ?? '';
     _whyController.text = habit.quickWhy ?? '';
     _timerDuration = habit.timerDuration;
+    _afterHabitId = habit.afterHabitId;
+    _habitType = HabitType.values.firstWhere(
+      (t) => t.name == habit.type,
+      orElse: () => HabitType.binary,
+    );
+    _countTargetController.text = habit.countTarget?.toString() ?? '8';
+    _weeklyTargetController.text = habit.weeklyTarget?.toString() ?? '3';
 
     // Parse scheduled time
     try {
@@ -103,6 +117,40 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
                     validator: _validateName,
                     autovalidateMode: AutovalidateMode.onUserInteraction,
                   ),
+
+                  // Count target (only for count type habits)
+                  if (_habitType == HabitType.count) ...[
+                    const Gap(24),
+                    _buildSectionLabel(context, 'Daily Target', isRequired: true),
+                    const Gap(8),
+                    TextFormField(
+                      controller: _countTargetController,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g., 8',
+                        suffixText: 'times per day',
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: _validateCountTarget,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                    ),
+                  ],
+
+                  // Weekly target (only for weekly type habits)
+                  if (_habitType == HabitType.weekly) ...[
+                    const Gap(24),
+                    _buildSectionLabel(context, 'Weekly Target', isRequired: true),
+                    const Gap(8),
+                    TextFormField(
+                      controller: _weeklyTargetController,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g., 3',
+                        suffixText: 'times per week',
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: _validateWeeklyTarget,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                    ),
+                  ],
                   const Gap(24),
 
                   // When - Time picker (required)
@@ -157,6 +205,23 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
                   const Gap(8),
                   Text(
                     'How long to focus when completing this habit.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const Gap(24),
+
+                  // Habit Stacking (optional)
+                  _buildSectionLabel(context, 'Stack After'),
+                  const Gap(8),
+                  _HabitStackSelector(
+                    selectedHabitId: _afterHabitId,
+                    excludeHabitId: widget.habitId,
+                    onHabitChanged: (habitId) {
+                      setState(() => _afterHabitId = habitId);
+                    },
+                  ),
+                  const Gap(8),
+                  Text(
+                    'Link habits together: do this after completing another habit.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const Gap(40),
@@ -229,6 +294,40 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
     return null;
   }
 
+  String? _validateCountTarget(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Please enter a target';
+    }
+    final parsed = int.tryParse(value.trim());
+    if (parsed == null) {
+      return 'Please enter a valid number';
+    }
+    if (parsed < 1) {
+      return 'Target must be at least 1';
+    }
+    if (parsed > 100) {
+      return 'Target must be 100 or less';
+    }
+    return null;
+  }
+
+  String? _validateWeeklyTarget(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Please enter a weekly target';
+    }
+    final parsed = int.tryParse(value.trim());
+    if (parsed == null) {
+      return 'Please enter a valid number';
+    }
+    if (parsed < 1) {
+      return 'Target must be at least 1';
+    }
+    if (parsed > 7) {
+      return 'Target must be 7 or less';
+    }
+    return null;
+  }
+
   Future<void> _saveHabit() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -253,6 +352,16 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
                 : _whyController.text.trim(),
             timerDuration: _timerDuration,
             updateTimerDuration: true,
+            countTarget: _habitType == HabitType.count
+                ? int.tryParse(_countTargetController.text.trim())
+                : null,
+            updateCountTarget: _habitType == HabitType.count,
+            weeklyTarget: _habitType == HabitType.weekly
+                ? int.tryParse(_weeklyTargetController.text.trim())
+                : null,
+            updateWeeklyTarget: _habitType == HabitType.weekly,
+            afterHabitId: _afterHabitId,
+            updateAfterHabitId: true,
           );
 
       if (mounted) {
@@ -344,6 +453,170 @@ class _TimePicker extends StatelessWidget {
 
     if (picked != null) {
       onTimeChanged(picked);
+    }
+  }
+}
+
+/// Dropdown for selecting a habit to stack after (habit chaining).
+class _HabitStackSelector extends ConsumerWidget {
+  final String? selectedHabitId;
+  final ValueChanged<String?> onHabitChanged;
+  final String? excludeHabitId;
+
+  const _HabitStackSelector({
+    required this.selectedHabitId,
+    required this.onHabitChanged,
+    this.excludeHabitId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final habitsAsync = ref.watch(habitsStreamProvider);
+
+    return habitsAsync.when(
+      data: (habits) {
+        // Filter out current habit if editing
+        final availableHabits = excludeHabitId != null
+            ? habits.where((h) => h.id != excludeHabitId).toList()
+            : habits;
+
+        return InkWell(
+          onTap: () => _showHabitPicker(context, availableHabits),
+          borderRadius: BorderRadius.circular(12),
+          child: InputDecorator(
+            decoration: const InputDecoration(
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.link,
+                  color: Theme.of(context).textTheme.bodySmall?.color,
+                ),
+                const Gap(12),
+                Expanded(
+                  child: Text(
+                    _getSelectedHabitName(availableHabits),
+                    style: selectedHabitId == null
+                        ? Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Theme.of(context).hintColor,
+                            )
+                        : Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+                if (selectedHabitId != null)
+                  IconButton(
+                    icon: const Icon(Icons.clear, size: 20),
+                    onPressed: () => onHabitChanged(null),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  )
+                else
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => const InputDecorator(
+        decoration: InputDecoration(
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            Gap(12),
+            Text('Loading habits...'),
+          ],
+        ),
+      ),
+      error: (_, __) => const InputDecorator(
+        decoration: InputDecoration(
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+        child: Text('Error loading habits'),
+      ),
+    );
+  }
+
+  String _getSelectedHabitName(List<Habit> habits) {
+    if (selectedHabitId == null) {
+      return 'None (standalone habit)';
+    }
+    final habit = habits.where((h) => h.id == selectedHabitId).firstOrNull;
+    return habit?.name ?? 'Unknown habit';
+  }
+
+  Future<void> _showHabitPicker(
+    BuildContext context,
+    List<Habit> habits,
+  ) async {
+    final selected = await showModalBottomSheet<String?>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.8,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Text(
+                    'Stack After Habit',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  // None option
+                  ListTile(
+                    leading: const Icon(Icons.remove_circle_outline),
+                    title: const Text('None (standalone habit)'),
+                    selected: selectedHabitId == null,
+                    onTap: () => Navigator.pop(context, ''),
+                  ),
+                  const Divider(),
+                  // Habit options
+                  ...habits.map(
+                    (habit) => ListTile(
+                      leading: const Icon(Icons.check_circle_outline),
+                      title: Text(habit.name),
+                      subtitle: Text('Scheduled: ${habit.scheduledTime}'),
+                      selected: selectedHabitId == habit.id,
+                      onTap: () => Navigator.pop(context, habit.id),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (selected != null) {
+      onHabitChanged(selected.isEmpty ? null : selected);
     }
   }
 }

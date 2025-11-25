@@ -37,6 +37,7 @@ class HabitNotifier extends AsyncNotifier<List<Habit>> {
     int? countTarget,
     int? weeklyTarget,
     int? timerDuration,
+    String? afterHabitId,
   }) async {
     final id = await _repo.create(
       name: name,
@@ -47,6 +48,7 @@ class HabitNotifier extends AsyncNotifier<List<Habit>> {
       countTarget: countTarget,
       weeklyTarget: weeklyTarget,
       timerDuration: timerDuration,
+      afterHabitId: afterHabitId,
     );
 
     // Refresh the list
@@ -63,6 +65,12 @@ class HabitNotifier extends AsyncNotifier<List<Habit>> {
     String? quickWhy,
     int? timerDuration,
     bool updateTimerDuration = false,
+    int? countTarget,
+    bool updateCountTarget = false,
+    int? weeklyTarget,
+    bool updateWeeklyTarget = false,
+    String? afterHabitId,
+    bool updateAfterHabitId = false,
   }) async {
     await _repo.update(
       id: id,
@@ -72,6 +80,12 @@ class HabitNotifier extends AsyncNotifier<List<Habit>> {
       quickWhy: quickWhy,
       timerDuration: timerDuration,
       updateTimerDuration: updateTimerDuration,
+      countTarget: countTarget,
+      updateCountTarget: updateCountTarget,
+      weeklyTarget: weeklyTarget,
+      updateWeeklyTarget: updateWeeklyTarget,
+      afterHabitId: afterHabitId,
+      updateAfterHabitId: updateAfterHabitId,
     );
     ref.invalidateSelf();
   }

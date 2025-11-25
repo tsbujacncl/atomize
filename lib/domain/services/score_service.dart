@@ -120,6 +120,9 @@ class ScoreService {
   /// Handles multi-day gaps: if user hasn't opened app for several days,
   /// decay is applied for each missed day.
   ///
+  /// For weekly habits, decay is applied only if the weekly target wasn't met
+  /// for the week containing the missed day.
+  ///
   /// Returns the number of decay events applied.
   Future<int> applyDayEndDecay() async {
     final now = DateTime.now();
@@ -148,6 +151,7 @@ class ScoreService {
       var currentScore = habit.score;
       var currentMaturity = habit.maturity;
       var checkDate = startDate.add(const Duration(days: 1));
+      final isWeeklyHabit = habit.type == 'weekly';
 
       while (checkDate.isBefore(todayEffective) ||
           _isSameDay(checkDate, todayEffective)) {
@@ -165,12 +169,33 @@ class ScoreService {
           continue;
         }
 
-        final wasCompleted = await _completionRepository.wasCompletedOnDate(
-          habit.id,
-          dayToCheck,
-        );
+        bool shouldDecay = false;
 
-        if (!wasCompleted && currentScore > 0) {
+        if (isWeeklyHabit) {
+          // For weekly habits, only decay if we're at the end of a week
+          // and the weekly target wasn't met
+          final isEndOfWeek = dayToCheck.weekday == DateTime.sunday;
+          if (isEndOfWeek) {
+            final weekStart = _getStartOfWeek(dayToCheck);
+            final weekEnd = dayToCheck;
+            final weeklyCount = await _completionRepository.countCompletedDaysInRange(
+              habit.id,
+              weekStart,
+              weekEnd,
+            );
+            final weeklyTarget = habit.weeklyTarget ?? 3;
+            shouldDecay = weeklyCount < weeklyTarget && currentScore > 0;
+          }
+        } else {
+          // For binary and count habits, decay if not completed that day
+          final wasCompleted = await _completionRepository.wasCompletedOnDate(
+            habit.id,
+            dayToCheck,
+          );
+          shouldDecay = !wasCompleted && currentScore > 0;
+        }
+
+        if (shouldDecay) {
           // Apply decay for this missed day
           final decay = calculateDecay(currentScore, currentMaturity);
           currentScore = math.max(0.0, currentScore - decay);
@@ -192,6 +217,13 @@ class ScoreService {
     return totalDecayEvents;
   }
 
+  /// Get the start of the week (Monday at midnight) for a given date.
+  DateTime _getStartOfWeek(DateTime date) {
+    // weekday: 1 = Monday, 7 = Sunday
+    final daysFromMonday = date.weekday - 1;
+    return DateTime(date.year, date.month, date.day - daysFromMonday);
+  }
+
   /// Apply partial credit for count-type habits (Phase 2).
   ///
   /// Returns the effective credit percentage based on completion ratio.
@@ -204,6 +236,59 @@ class ScoreService {
     if (ratio >= 0.2) return 0.0; // 20-59% no change
     if (ratio > 0) return 0.0; // 1-19% no change
     return -100.0; // 0% full decay
+  }
+
+  /// Increment count for a count-type habit.
+  ///
+  /// Records a completion with countAchieved = [increment].
+  /// Applies score gain only when the total reaches the target for the first time.
+  ///
+  /// Returns the new total count for today.
+  Future<int> incrementCount({
+    required String habitId,
+    int increment = 1,
+    CompletionSource source = CompletionSource.manual,
+  }) async {
+    final habit = await _habitRepository.getById(habitId);
+    if (habit == null) throw ArgumentError('Habit not found: $habitId');
+
+    final effectiveDate =
+        await _preferencesRepository.getEffectiveDate(DateTime.now());
+
+    // Get current count for today
+    final currentCount = await _completionRepository.getTodayCount(
+      habitId,
+      effectiveDate,
+    );
+    final target = habit.countTarget ?? 1;
+    final wasAlreadyComplete = currentCount >= target;
+    final newCount = currentCount + increment;
+
+    // Record the increment
+    await _completionRepository.recordCompletion(
+      habitId: habitId,
+      effectiveDate: effectiveDate,
+      scoreAtCompletion: habit.score,
+      source: source,
+      countAchieved: increment,
+      creditPercentage: 100.0,
+    );
+
+    // Apply score gain only on first completion of target
+    if (!wasAlreadyComplete && newCount >= target) {
+      final baseGain = calculateGain(habit.score);
+      final newScore = math.min(100.0, habit.score + baseGain);
+
+      // Update maturity if score is above 50
+      int newMaturity = habit.maturity;
+      if (newScore > 50) {
+        newMaturity++;
+      }
+
+      await _habitRepository.updateScore(habitId, newScore, newMaturity);
+    }
+
+    return newCount;
   }
 
   /// Check if two dates are the same day.

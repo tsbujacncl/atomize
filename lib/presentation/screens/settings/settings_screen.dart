@@ -4,8 +4,10 @@ import 'package:gap/gap.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/database/app_database.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/preferences_provider.dart';
 import '../../widgets/atomize_logo.dart';
+import 'account_screen.dart';
 
 /// Settings screen with app preferences.
 class SettingsScreen extends ConsumerWidget {
@@ -35,8 +37,28 @@ class _SettingsContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authService = ref.watch(authServiceProvider);
+    final isAnonymous = authService?.isAnonymous ?? true;
+    final userEmail = authService?.userEmail;
+
     return ListView(
       children: [
+        // Account Section
+        _SectionHeader(title: 'Account'),
+        _AccountCard(
+          isAnonymous: isAnonymous,
+          email: userEmail,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const AccountScreen(),
+              ),
+            );
+          },
+        ),
+
+        const Divider(height: 32),
+
         // Appearance Section
         _SectionHeader(title: 'Appearance'),
         _ThemeSelector(
@@ -132,6 +154,65 @@ class _SectionHeader extends StatelessWidget {
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.w600,
             ),
+      ),
+    );
+  }
+}
+
+class _AccountCard extends StatelessWidget {
+  final bool isAnonymous;
+  final String? email;
+  final VoidCallback onTap;
+
+  const _AccountCard({
+    required this.isAnonymous,
+    this.email,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: ListTile(
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isAnonymous
+                  ? Theme.of(context).colorScheme.surfaceContainerHighest
+                  : Theme.of(context).colorScheme.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isAnonymous ? Icons.person_outline : Icons.person,
+              color: isAnonymous
+                  ? Theme.of(context).textTheme.bodySmall?.color
+                  : Theme.of(context).colorScheme.onPrimaryContainer,
+            ),
+          ),
+          title: Text(isAnonymous ? 'Guest Account' : 'Signed In'),
+          subtitle: Text(
+            isAnonymous
+                ? 'Sign in to sync across devices'
+                : email ?? 'Account linked',
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!isAnonymous)
+                Icon(
+                  Icons.check_circle,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 20,
+                ),
+              const Gap(8),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+          onTap: onTap,
+        ),
       ),
     );
   }

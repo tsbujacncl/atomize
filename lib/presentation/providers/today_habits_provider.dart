@@ -10,11 +10,42 @@ class TodayHabit {
   final bool isCompletedToday;
   final DateTime effectiveDate;
 
+  /// For count-type habits: today's progress count.
+  final int todayCount;
+
+  /// For weekly-type habits: this week's completion count (distinct days).
+  final int weeklyCount;
+
   const TodayHabit({
     required this.habit,
     required this.isCompletedToday,
     required this.effectiveDate,
+    this.todayCount = 0,
+    this.weeklyCount = 0,
   });
+
+  /// Whether this is a count-type habit.
+  bool get isCountType => habit.type == 'count';
+
+  /// Whether this is a weekly-type habit.
+  bool get isWeeklyType => habit.type == 'weekly';
+
+  /// Target count for count-type habits.
+  int get countTarget => habit.countTarget ?? 1;
+
+  /// Target count for weekly-type habits.
+  int get weeklyTarget => habit.weeklyTarget ?? 3;
+
+  /// Progress percentage for count-type habits (0.0 to 1.0).
+  double get countProgress =>
+      isCountType ? (todayCount / countTarget).clamp(0.0, 1.0) : 0.0;
+
+  /// Progress percentage for weekly-type habits (0.0 to 1.0).
+  double get weeklyProgress =>
+      isWeeklyType ? (weeklyCount / weeklyTarget).clamp(0.0, 1.0) : 0.0;
+
+  /// Whether the weekly target has been met.
+  bool get isWeeklyTargetMet => isWeeklyType && weeklyCount >= weeklyTarget;
 }
 
 /// Provides today's habits with completion status.
@@ -33,19 +64,52 @@ class TodayHabitsNotifier extends AsyncNotifier<List<TodayHabit>> {
     // Get effective date for today
     final effectiveDate = await prefsRepo.getEffectiveDate(DateTime.now());
 
+    // Calculate start of current week (Monday)
+    final weekStart = _getStartOfWeek(effectiveDate);
+
     // Check completion status for each habit
     final todayHabits = <TodayHabit>[];
 
     for (final habit in habits) {
-      final isCompleted = await completionRepo.wasCompletedOnDate(
-        habit.id,
-        effectiveDate,
-      );
+      final isCountType = habit.type == 'count';
+      final isWeeklyType = habit.type == 'weekly';
+      int todayCount = 0;
+      int weeklyCount = 0;
+      bool isCompleted;
+
+      if (isCountType) {
+        // For count habits, check if target is met
+        todayCount = await completionRepo.getTodayCount(habit.id, effectiveDate);
+        isCompleted = todayCount >= (habit.countTarget ?? 1);
+      } else if (isWeeklyType) {
+        // For weekly habits, count distinct completed days this week
+        weeklyCount = await completionRepo.countCompletedDaysInRange(
+          habit.id,
+          weekStart,
+          effectiveDate,
+        );
+        // Weekly habit is "complete" for today if already completed today
+        // OR if weekly target is already met
+        final completedToday = await completionRepo.wasCompletedOnDate(
+          habit.id,
+          effectiveDate,
+        );
+        final targetMet = weeklyCount >= (habit.weeklyTarget ?? 3);
+        isCompleted = completedToday || targetMet;
+      } else {
+        // For binary habits, just check if completed
+        isCompleted = await completionRepo.wasCompletedOnDate(
+          habit.id,
+          effectiveDate,
+        );
+      }
 
       todayHabits.add(TodayHabit(
         habit: habit,
         isCompletedToday: isCompleted,
         effectiveDate: effectiveDate,
+        todayCount: todayCount,
+        weeklyCount: weeklyCount,
       ));
     }
 
@@ -58,6 +122,13 @@ class TodayHabitsNotifier extends AsyncNotifier<List<TodayHabit>> {
     });
 
     return todayHabits;
+  }
+
+  /// Get the start of the week (Monday at midnight) for a given date.
+  DateTime _getStartOfWeek(DateTime date) {
+    // weekday: 1 = Monday, 7 = Sunday
+    final daysFromMonday = date.weekday - 1;
+    return DateTime(date.year, date.month, date.day - daysFromMonday);
   }
 
   /// Refresh the list after a completion

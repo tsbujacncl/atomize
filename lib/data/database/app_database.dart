@@ -42,6 +42,17 @@ class AppDatabase extends _$AppDatabase {
           );
         }
       },
+      beforeOpen: (details) async {
+        // Ensure default preferences row exists (fixes missing row after migrations)
+        final existingPrefs = await (select(userPreferences)
+              ..where((p) => p.id.equals(1)))
+            .getSingleOrNull();
+        if (existingPrefs == null) {
+          await into(userPreferences).insert(
+            UserPreferencesCompanion.insert(),
+          );
+        }
+      },
     );
   }
 }
