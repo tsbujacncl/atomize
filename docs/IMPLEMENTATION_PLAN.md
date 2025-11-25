@@ -5,7 +5,7 @@
 This document tracks the development progress of Atomize V1.2, a complete redesign focusing on anti-addictive, supportive habit tracking with flame-based scoring.
 
 **Last Updated**: 2025-11-25
-**Current Version**: V1.2 Foundation (Milestones 0-8)
+**Current Version**: V1.2 Foundation (Milestones 0-9)
 **Branch**: master
 **Design Document**: [DESIGN_DOCUMENT_V1.2.md](./DESIGN_DOCUMENT_V1.2.md)
 
@@ -272,18 +272,24 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 
 ---
 
-## Pending Milestones
+### ✅ Milestone 9: Progress Bar Chart
 
-### ⏳ Milestone 9: Progress Bar Chart
-**Status**: Pending
+**Status**: Complete
 
-- [ ] Create simple bar chart widget (last 30 days)
-- [ ] Each bar = score on that day
-- [ ] Bar color matches flame color
-- [ ] Show in habit detail screen
-- [ ] Simple stats display
+- [x] Create simple bar chart widget (last 30 days)
+- [x] Each bar = completion on that day
+- [x] Bar color matches flame color based on current score
+- [x] Show in habit detail screen
+- [x] Simple stats display (X/30 days completed with percentage)
+
+**Files Created/Modified**:
+- `lib/presentation/widgets/progress_bar_chart.dart` (new)
+- `lib/presentation/providers/completion_history_provider.dart` (new)
+- `lib/presentation/screens/habit_detail/habit_detail_screen.dart` (updated)
 
 ---
+
+## Pending Milestones
 
 ### ⏳ Milestone 10: Settings & Onboarding
 **Status**: Pending
@@ -352,6 +358,7 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 ## Changelog
 
 ### 2025-11-25
+- **Milestone 9 Complete**: Progress Bar Chart - Last 30 days completion history with flame-colored bars and stats chip
 - **Milestone 8 Complete**: Basic Notifications - Pre/post reminders with quiet hours and break mode support
 - **M7 Enhancement**: Replaced maturity display with completion rate + time period selector (1M | 3M | 1Y | All)
 - **Milestone 7 Complete**: Habit Detail Screen - Large flame, stats, details, purpose display, edit/archive/delete functionality

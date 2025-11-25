@@ -5,9 +5,11 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/database/app_database.dart';
+import '../../providers/completion_history_provider.dart';
 import '../../providers/completion_stats_provider.dart';
 import '../../providers/habit_provider.dart';
 import '../../widgets/flame_widget.dart';
+import '../../widgets/progress_bar_chart.dart';
 import 'edit_habit_screen.dart';
 
 /// Screen displaying detailed information about a habit.
@@ -51,13 +53,23 @@ class HabitDetailScreen extends ConsumerWidget {
   }
 }
 
-class _HabitDetailContent extends ConsumerWidget {
+class _HabitDetailContent extends ConsumerStatefulWidget {
   final Habit habit;
 
   const _HabitDetailContent({required this.habit});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_HabitDetailContent> createState() =>
+      _HabitDetailContentState();
+}
+
+class _HabitDetailContentState extends ConsumerState<_HabitDetailContent> {
+  StatsPeriod _selectedPeriod = StatsPeriod.oneWeek;
+
+  @override
+  Widget build(BuildContext context) {
+    final habit = widget.habit;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(habit.name),
@@ -68,7 +80,7 @@ class _HabitDetailContent extends ConsumerWidget {
             tooltip: 'Edit',
           ),
           PopupMenuButton<String>(
-            onSelected: (value) => _handleMenuAction(context, ref, value),
+            onSelected: (value) => _handleMenuAction(context, value),
             itemBuilder: (context) => [
               const PopupMenuItem(
                 value: 'archive',
@@ -101,10 +113,34 @@ class _HabitDetailContent extends ConsumerWidget {
           children: [
             // Large flame visualization
             _LargeFlameSection(score: habit.score),
+            const Gap(24),
+
+            // Time period selector (unified)
+            SegmentedButton<StatsPeriod>(
+              segments: StatsPeriod.values
+                  .map((p) => ButtonSegment(
+                        value: p,
+                        label: Text(p.label),
+                      ))
+                  .toList(),
+              selected: {_selectedPeriod},
+              onSelectionChanged: (selected) {
+                setState(() => _selectedPeriod = selected.first);
+              },
+              showSelectedIcon: false,
+              style: const ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            const Gap(24),
+
+            // Score and completion stats
+            _StatsSection(habit: habit, period: _selectedPeriod),
             const Gap(32),
 
-            // Score and maturity stats
-            _StatsSection(habit: habit),
+            // Progress bar chart
+            _ProgressChartSection(habit: habit, period: _selectedPeriod),
             const Gap(32),
 
             // Habit details
@@ -120,7 +156,7 @@ class _HabitDetailContent extends ConsumerWidget {
             // Action buttons
             _ActionButtons(
               onEdit: () => _navigateToEdit(context),
-              onArchive: () => _showArchiveDialog(context, ref),
+              onArchive: () => _showArchiveDialog(context),
             ),
           ],
         ),
@@ -138,23 +174,24 @@ class _HabitDetailContent extends ConsumerWidget {
   void _navigateToEdit(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => EditHabitScreen(habitId: habit.id),
+        builder: (context) => EditHabitScreen(habitId: widget.habit.id),
       ),
     );
   }
 
-  void _handleMenuAction(BuildContext context, WidgetRef ref, String action) {
+  void _handleMenuAction(BuildContext context, String action) {
     switch (action) {
       case 'archive':
-        _showArchiveDialog(context, ref);
+        _showArchiveDialog(context);
         break;
       case 'delete':
-        _showDeleteDialog(context, ref);
+        _showDeleteDialog(context);
         break;
     }
   }
 
-  Future<void> _showArchiveDialog(BuildContext context, WidgetRef ref) async {
+  Future<void> _showArchiveDialog(BuildContext context) async {
+    final habit = widget.habit;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -196,7 +233,8 @@ class _HabitDetailContent extends ConsumerWidget {
     }
   }
 
-  Future<void> _showDeleteDialog(BuildContext context, WidgetRef ref) async {
+  Future<void> _showDeleteDialog(BuildContext context) async {
+    final habit = widget.habit;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -278,77 +316,47 @@ class _LargeFlameSection extends StatelessWidget {
 }
 
 /// Stats section showing score, completion rate, and created date
-class _StatsSection extends ConsumerStatefulWidget {
+class _StatsSection extends ConsumerWidget {
   final Habit habit;
+  final StatsPeriod period;
 
-  const _StatsSection({required this.habit});
-
-  @override
-  ConsumerState<_StatsSection> createState() => _StatsSectionState();
-}
-
-class _StatsSectionState extends ConsumerState<_StatsSection> {
-  StatsPeriod _selectedPeriod = StatsPeriod.oneMonth;
+  const _StatsSection({required this.habit, required this.period});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(
       completionStatsProvider((
-        habitId: widget.habit.id,
-        period: _selectedPeriod,
+        habitId: habit.id,
+        period: period,
       )),
     );
 
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        // Stats row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _StatItem(
-              label: 'Score',
-              value: '${widget.habit.score.round()}%',
-              color: AppColors.getFlameColor(widget.habit.score),
-            ),
-            statsAsync.when(
-              data: (stats) => _StatItem(
-                label: 'Completed',
-                value: '${stats.percentage.round()}%',
-                subtitle: '${stats.completedDays}/${stats.totalDays} days',
-              ),
-              loading: () => const _StatItem(
-                label: 'Completed',
-                value: '...',
-              ),
-              error: (_, __) => const _StatItem(
-                label: 'Completed',
-                value: '-',
-              ),
-            ),
-            _StatItem(
-              label: 'Created',
-              value: _formatDate(widget.habit.createdAt),
-            ),
-          ],
+        _StatItem(
+          label: 'Score',
+          value: '${habit.score.round()}%',
+          color: AppColors.getFlameColor(habit.score),
         ),
-        const Gap(16),
-        // Period segmented control
-        SegmentedButton<StatsPeriod>(
-          segments: StatsPeriod.values
-              .map((p) => ButtonSegment(
-                    value: p,
-                    label: Text(p.label),
-                  ))
-              .toList(),
-          selected: {_selectedPeriod},
-          onSelectionChanged: (selected) {
-            setState(() => _selectedPeriod = selected.first);
-          },
-          showSelectedIcon: false,
-          style: ButtonStyle(
-            visualDensity: VisualDensity.compact,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        statsAsync.when(
+          data: (stats) => _StatItem(
+            label: 'Completed',
+            value: '${stats.percentage.round()}%',
+            subtitle: '${stats.completedDays}/${stats.totalDays} days',
           ),
+          loading: () => const _StatItem(
+            label: 'Completed',
+            value: '...',
+          ),
+          error: (_, __) => const _StatItem(
+            label: 'Completed',
+            value: '-',
+          ),
+        ),
+        _StatItem(
+          label: 'Created',
+          value: _formatDate(habit.createdAt),
         ),
       ],
     );
@@ -399,6 +407,51 @@ class _StatItem extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall,
           ),
       ],
+    );
+  }
+}
+
+/// Progress bar chart section
+class _ProgressChartSection extends ConsumerWidget {
+  final Habit habit;
+  final StatsPeriod period;
+
+  const _ProgressChartSection({required this.habit, required this.period});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // For "All Time", use days since habit creation
+    final days = period == StatsPeriod.allTime
+        ? DateTime.now().difference(habit.createdAt).inDays + 1
+        : period.days;
+
+    final historyAsync = ref.watch(
+      completionHistoryProvider((
+        habitId: habit.id,
+        days: days,
+      )),
+    );
+
+    return historyAsync.when(
+      data: (history) => ProgressChartCard(
+        history: history,
+        score: habit.score,
+        title: period.title,
+      ),
+      loading: () => const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      ),
+      error: (_, __) => const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Text('Could not load progress data'),
+        ),
+      ),
     );
   }
 }

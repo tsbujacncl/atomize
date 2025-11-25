@@ -5,15 +5,17 @@ import 'habit_provider.dart';
 
 /// Time period for completion statistics
 enum StatsPeriod {
-  oneMonth('1M', 30),
-  threeMonths('3M', 90),
-  oneYear('1Y', 365),
-  allTime('All', 0);
+  oneWeek('1W', 7, 'Last 7 Days'),
+  oneMonth('1M', 30, 'Last 30 Days'),
+  threeMonths('3M', 90, 'Last 3 Months'),
+  oneYear('1Y', 365, 'Last Year'),
+  allTime('All', 0, 'All Time');
 
   final String label;
   final int days;
+  final String title;
 
-  const StatsPeriod(this.label, this.days);
+  const StatsPeriod(this.label, this.days, this.title);
 }
 
 /// Completion statistics for a habit
