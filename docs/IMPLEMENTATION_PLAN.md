@@ -5,7 +5,7 @@
 This document tracks the development progress of Atomize V1.2, a complete redesign focusing on anti-addictive, supportive habit tracking with flame-based scoring.
 
 **Last Updated**: 2025-11-25
-**Current Version**: V1.2 Foundation (Milestones 0-6)
+**Current Version**: V1.2 Foundation (Milestones 0-7)
 **Branch**: master
 **Design Document**: [DESIGN_DOCUMENT_V1.2.md](./DESIGN_DOCUMENT_V1.2.md)
 
@@ -229,19 +229,23 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 
 ---
 
-## Pending Milestones
+### ✅ Milestone 7: Habit Detail Screen
+**Status**: Complete
 
-### ⏳ Milestone 7: Habit Detail Screen
-**Status**: Pending
+- [x] Create `HabitDetailScreen`
+- [x] Large flame visualization
+- [x] Show: name, score, maturity, purpose
+- [x] Edit button → edit screen
+- [x] Archive button (soft delete)
+- [x] Delete button (with confirmation)
 
-- [ ] Create `HabitDetailScreen`
-- [ ] Large flame visualization
-- [ ] Show: name, score, maturity, purpose
-- [ ] Edit button → edit screen
-- [ ] Archive button (soft delete)
-- [ ] Delete button (with confirmation)
+**Files Created/Modified**:
+- `lib/presentation/screens/habit_detail/habit_detail_screen.dart` (implemented)
+- `lib/presentation/screens/habit_detail/edit_habit_screen.dart` (new)
 
 ---
+
+## Pending Milestones
 
 ### ⏳ Milestone 8: Basic Notifications
 **Status**: Pending
@@ -333,6 +337,7 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 ## Changelog
 
 ### 2025-11-25
+- **Milestone 7 Complete**: Habit Detail Screen - Large flame, stats, details, purpose display, edit/archive/delete functionality
 - **Milestone 6 Complete**: Create Habit Screen - Full form with What/When/Where/Why fields, time picker, validation, and save functionality
 
 ### 2025-11-24
