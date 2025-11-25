@@ -4,8 +4,8 @@
 
 This document tracks the development progress of Atomize V1.2, a complete redesign focusing on anti-addictive, supportive habit tracking with flame-based scoring.
 
-**Last Updated**: 2025-11-24
-**Current Version**: V1.2 Foundation (Milestones 0-5.1)
+**Last Updated**: 2025-11-25
+**Current Version**: V1.2 Foundation (Milestones 0-6)
 **Branch**: master
 **Design Document**: [DESIGN_DOCUMENT_V1.2.md](./DESIGN_DOCUMENT_V1.2.md)
 
@@ -211,22 +211,25 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 
 ---
 
-## Pending Milestones
+### ✅ Milestone 6: Create Habit Screen
+**Status**: Complete
 
-### ⏳ Milestone 6: Create Habit Screen
-**Status**: Pending
-
-- [ ] Create `CreateHabitScreen`
-- [ ] Form fields:
+- [x] Create `CreateHabitScreen`
+- [x] Form fields:
   - What (habit name) — required
   - When (time picker) — required
   - Where (location) — optional
   - Why (single line purpose) — optional
-- [ ] Validation
-- [ ] Save to database via provider
-- [ ] Navigate back to home after save
+- [x] Validation
+- [x] Save to database via provider
+- [x] Navigate back to home after save
+
+**Files Modified**:
+- `lib/presentation/screens/create_habit/create_habit_screen.dart` (implemented)
 
 ---
+
+## Pending Milestones
 
 ### ⏳ Milestone 7: Habit Detail Screen
 **Status**: Pending
@@ -328,6 +331,9 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 ---
 
 ## Changelog
+
+### 2025-11-25
+- **Milestone 6 Complete**: Create Habit Screen - Full form with What/When/Where/Why fields, time picker, validation, and save functionality
 
 ### 2025-11-24
 - **Milestone 5.1 Complete**: Logo & Branding - AtomizeLogo widget with blue→orange gradient and inline flame
