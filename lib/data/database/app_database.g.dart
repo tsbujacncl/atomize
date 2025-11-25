@@ -199,6 +199,17 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _timerDurationMeta = const VerificationMeta(
+    'timerDuration',
+  );
+  @override
+  late final GeneratedColumn<int> timerDuration = GeneratedColumn<int>(
+    'timer_duration',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -218,6 +229,7 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
     createdAt,
     isArchived,
     lastDecayAt,
+    timerDuration,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -354,6 +366,15 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
         ),
       );
     }
+    if (data.containsKey('timer_duration')) {
+      context.handle(
+        _timerDurationMeta,
+        timerDuration.isAcceptableOrUnknown(
+          data['timer_duration']!,
+          _timerDurationMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -431,6 +452,10 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_decay_at'],
       ),
+      timerDuration: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}timer_duration'],
+      ),
     );
   }
 
@@ -491,6 +516,9 @@ class Habit extends DataClass implements Insertable<Habit> {
 
   /// Last time decay was applied
   final DateTime? lastDecayAt;
+
+  /// Timer duration in seconds for this habit (null = use default 120s / 2 min)
+  final int? timerDuration;
   const Habit({
     required this.id,
     required this.name,
@@ -509,6 +537,7 @@ class Habit extends DataClass implements Insertable<Habit> {
     required this.createdAt,
     required this.isArchived,
     this.lastDecayAt,
+    this.timerDuration,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -547,6 +576,9 @@ class Habit extends DataClass implements Insertable<Habit> {
     map['is_archived'] = Variable<bool>(isArchived);
     if (!nullToAbsent || lastDecayAt != null) {
       map['last_decay_at'] = Variable<DateTime>(lastDecayAt);
+    }
+    if (!nullToAbsent || timerDuration != null) {
+      map['timer_duration'] = Variable<int>(timerDuration);
     }
     return map;
   }
@@ -588,6 +620,9 @@ class Habit extends DataClass implements Insertable<Habit> {
       lastDecayAt: lastDecayAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastDecayAt),
+      timerDuration: timerDuration == null && nullToAbsent
+          ? const Value.absent()
+          : Value(timerDuration),
     );
   }
 
@@ -614,6 +649,7 @@ class Habit extends DataClass implements Insertable<Habit> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
       lastDecayAt: serializer.fromJson<DateTime?>(json['lastDecayAt']),
+      timerDuration: serializer.fromJson<int?>(json['timerDuration']),
     );
   }
   @override
@@ -637,6 +673,7 @@ class Habit extends DataClass implements Insertable<Habit> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'isArchived': serializer.toJson<bool>(isArchived),
       'lastDecayAt': serializer.toJson<DateTime?>(lastDecayAt),
+      'timerDuration': serializer.toJson<int?>(timerDuration),
     };
   }
 
@@ -658,6 +695,7 @@ class Habit extends DataClass implements Insertable<Habit> {
     DateTime? createdAt,
     bool? isArchived,
     Value<DateTime?> lastDecayAt = const Value.absent(),
+    Value<int?> timerDuration = const Value.absent(),
   }) => Habit(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -676,6 +714,9 @@ class Habit extends DataClass implements Insertable<Habit> {
     createdAt: createdAt ?? this.createdAt,
     isArchived: isArchived ?? this.isArchived,
     lastDecayAt: lastDecayAt.present ? lastDecayAt.value : this.lastDecayAt,
+    timerDuration: timerDuration.present
+        ? timerDuration.value
+        : this.timerDuration,
   );
   Habit copyWithCompanion(HabitsCompanion data) {
     return Habit(
@@ -714,6 +755,9 @@ class Habit extends DataClass implements Insertable<Habit> {
       lastDecayAt: data.lastDecayAt.present
           ? data.lastDecayAt.value
           : this.lastDecayAt,
+      timerDuration: data.timerDuration.present
+          ? data.timerDuration.value
+          : this.timerDuration,
     );
   }
 
@@ -736,7 +780,8 @@ class Habit extends DataClass implements Insertable<Habit> {
           ..write('afterHabitId: $afterHabitId, ')
           ..write('createdAt: $createdAt, ')
           ..write('isArchived: $isArchived, ')
-          ..write('lastDecayAt: $lastDecayAt')
+          ..write('lastDecayAt: $lastDecayAt, ')
+          ..write('timerDuration: $timerDuration')
           ..write(')'))
         .toString();
   }
@@ -760,6 +805,7 @@ class Habit extends DataClass implements Insertable<Habit> {
     createdAt,
     isArchived,
     lastDecayAt,
+    timerDuration,
   );
   @override
   bool operator ==(Object other) =>
@@ -781,7 +827,8 @@ class Habit extends DataClass implements Insertable<Habit> {
           other.afterHabitId == this.afterHabitId &&
           other.createdAt == this.createdAt &&
           other.isArchived == this.isArchived &&
-          other.lastDecayAt == this.lastDecayAt);
+          other.lastDecayAt == this.lastDecayAt &&
+          other.timerDuration == this.timerDuration);
 }
 
 class HabitsCompanion extends UpdateCompanion<Habit> {
@@ -802,6 +849,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
   final Value<DateTime> createdAt;
   final Value<bool> isArchived;
   final Value<DateTime?> lastDecayAt;
+  final Value<int?> timerDuration;
   final Value<int> rowid;
   const HabitsCompanion({
     this.id = const Value.absent(),
@@ -821,6 +869,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     this.createdAt = const Value.absent(),
     this.isArchived = const Value.absent(),
     this.lastDecayAt = const Value.absent(),
+    this.timerDuration = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   HabitsCompanion.insert({
@@ -841,6 +890,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     this.createdAt = const Value.absent(),
     this.isArchived = const Value.absent(),
     this.lastDecayAt = const Value.absent(),
+    this.timerDuration = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -863,6 +913,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     Expression<DateTime>? createdAt,
     Expression<bool>? isArchived,
     Expression<DateTime>? lastDecayAt,
+    Expression<int>? timerDuration,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -883,6 +934,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
       if (createdAt != null) 'created_at': createdAt,
       if (isArchived != null) 'is_archived': isArchived,
       if (lastDecayAt != null) 'last_decay_at': lastDecayAt,
+      if (timerDuration != null) 'timer_duration': timerDuration,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -905,6 +957,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     Value<DateTime>? createdAt,
     Value<bool>? isArchived,
     Value<DateTime?>? lastDecayAt,
+    Value<int?>? timerDuration,
     Value<int>? rowid,
   }) {
     return HabitsCompanion(
@@ -925,6 +978,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
       createdAt: createdAt ?? this.createdAt,
       isArchived: isArchived ?? this.isArchived,
       lastDecayAt: lastDecayAt ?? this.lastDecayAt,
+      timerDuration: timerDuration ?? this.timerDuration,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -983,6 +1037,9 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     if (lastDecayAt.present) {
       map['last_decay_at'] = Variable<DateTime>(lastDecayAt.value);
     }
+    if (timerDuration.present) {
+      map['timer_duration'] = Variable<int>(timerDuration.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1009,6 +1066,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
           ..write('createdAt: $createdAt, ')
           ..write('isArchived: $isArchived, ')
           ..write('lastDecayAt: $lastDecayAt, ')
+          ..write('timerDuration: $timerDuration, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2436,6 +2494,7 @@ typedef $$HabitsTableCreateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<bool> isArchived,
       Value<DateTime?> lastDecayAt,
+      Value<int?> timerDuration,
       Value<int> rowid,
     });
 typedef $$HabitsTableUpdateCompanionBuilder =
@@ -2457,6 +2516,7 @@ typedef $$HabitsTableUpdateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<bool> isArchived,
       Value<DateTime?> lastDecayAt,
+      Value<int?> timerDuration,
       Value<int> rowid,
     });
 
@@ -2551,6 +2611,11 @@ class $$HabitsTableFilterComposer
 
   ColumnFilters<DateTime> get lastDecayAt => $composableBuilder(
     column: $table.lastDecayAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get timerDuration => $composableBuilder(
+    column: $table.timerDuration,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2648,6 +2713,11 @@ class $$HabitsTableOrderingComposer
     column: $table.lastDecayAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get timerDuration => $composableBuilder(
+    column: $table.timerDuration,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$HabitsTableAnnotationComposer
@@ -2727,6 +2797,11 @@ class $$HabitsTableAnnotationComposer
     column: $table.lastDecayAt,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get timerDuration => $composableBuilder(
+    column: $table.timerDuration,
+    builder: (column) => column,
+  );
 }
 
 class $$HabitsTableTableManager
@@ -2774,6 +2849,7 @@ class $$HabitsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
                 Value<DateTime?> lastDecayAt = const Value.absent(),
+                Value<int?> timerDuration = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => HabitsCompanion(
                 id: id,
@@ -2793,6 +2869,7 @@ class $$HabitsTableTableManager
                 createdAt: createdAt,
                 isArchived: isArchived,
                 lastDecayAt: lastDecayAt,
+                timerDuration: timerDuration,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2814,6 +2891,7 @@ class $$HabitsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
                 Value<DateTime?> lastDecayAt = const Value.absent(),
+                Value<int?> timerDuration = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => HabitsCompanion.insert(
                 id: id,
@@ -2833,6 +2911,7 @@ class $$HabitsTableTableManager
                 createdAt: createdAt,
                 isArchived: isArchived,
                 lastDecayAt: lastDecayAt,
+                timerDuration: timerDuration,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

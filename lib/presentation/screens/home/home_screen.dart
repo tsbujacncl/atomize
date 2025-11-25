@@ -177,7 +177,7 @@ class _HabitList extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: HabitCard(
                 todayHabit: habit,
-                onComplete: () => _completeHabit(ref, habit.habit.id),
+                onQuickComplete: () => _quickCompleteHabit(ref, habit.habit.id),
               ),
             ),
           ),
@@ -199,7 +199,7 @@ class _HabitList extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: HabitCard(
                 todayHabit: habit,
-                onComplete: null, // Already completed
+                onQuickComplete: null, // Already completed
               ),
             ),
           ),
@@ -208,7 +208,7 @@ class _HabitList extends ConsumerWidget {
     );
   }
 
-  Future<void> _completeHabit(WidgetRef ref, String habitId) async {
+  Future<void> _quickCompleteHabit(WidgetRef ref, String habitId) async {
     await ref.read(completionNotifierProvider.notifier).completeHabit(
           habitId: habitId,
         );

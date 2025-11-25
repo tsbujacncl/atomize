@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../providers/habit_provider.dart';
+import '../../widgets/duration_picker.dart';
 
 /// Screen for creating a new habit.
 ///
@@ -39,6 +40,7 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
   final _whyController = TextEditingController();
 
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
+  int? _timerDuration; // null = use default (2 min)
   bool _isSaving = false;
 
   @override
@@ -139,6 +141,23 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
                 'A short purpose reminder helps on tough days.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+              const Gap(24),
+
+              // Timer duration (optional)
+              _buildSectionLabel(context, 'Timer Duration'),
+              const Gap(8),
+              DurationPicker(
+                selectedDuration: _timerDuration,
+                onDurationChanged: (duration) {
+                  setState(() => _timerDuration = duration);
+                },
+                showDefaultOption: true,
+              ),
+              const Gap(8),
+              Text(
+                'How long to focus when completing this habit.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               const Gap(40),
 
               // Save button
@@ -220,6 +239,7 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
             quickWhy: _whyController.text.trim().isEmpty
                 ? null
                 : _whyController.text.trim(),
+            timerDuration: _timerDuration,
           );
 
       if (mounted) {

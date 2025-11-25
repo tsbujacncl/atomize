@@ -36,6 +36,7 @@ class HabitRepository {
     String? quickWhy,
     int? countTarget,
     int? weeklyTarget,
+    int? timerDuration,
   }) async {
     final id = _uuid.v4();
     await _dao.insertHabit(
@@ -48,6 +49,7 @@ class HabitRepository {
         quickWhy: Value(quickWhy),
         countTarget: Value(countTarget),
         weeklyTarget: Value(weeklyTarget),
+        timerDuration: Value(timerDuration),
       ),
     );
     return id;
@@ -60,6 +62,8 @@ class HabitRepository {
     String? scheduledTime,
     String? location,
     String? quickWhy,
+    int? timerDuration,
+    bool updateTimerDuration = false,
   }) async {
     await _dao.updateFields(
       id,
@@ -69,6 +73,8 @@ class HabitRepository {
             scheduledTime != null ? Value(scheduledTime) : const Value.absent(),
         location: Value(location),
         quickWhy: Value(quickWhy),
+        timerDuration:
+            updateTimerDuration ? Value(timerDuration) : const Value.absent(),
       ),
     );
   }

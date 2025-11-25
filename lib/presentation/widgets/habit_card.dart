@@ -3,19 +3,23 @@ import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../data/database/app_database.dart';
 import '../providers/today_habits_provider.dart';
 import '../screens/habit_detail/habit_detail_screen.dart';
+import '../screens/timer/timer_screen.dart';
 import 'flame_widget.dart';
 
 /// Card widget displaying a single habit for the home screen.
 class HabitCard extends StatelessWidget {
   final TodayHabit todayHabit;
-  final VoidCallback? onComplete;
+
+  /// Called when quick complete is tapped (checkmark button).
+  final VoidCallback? onQuickComplete;
 
   const HabitCard({
     super.key,
     required this.todayHabit,
-    this.onComplete,
+    this.onQuickComplete,
   });
 
   @override
@@ -38,11 +42,12 @@ class HabitCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Flame button
-              _FlameButton(
+              // Action buttons
+              _ActionButtons(
+                habit: habit,
                 score: score,
                 isCompleted: isCompleted,
-                onTap: onComplete,
+                onQuickComplete: onQuickComplete,
               ),
               const Gap(16),
 
@@ -134,16 +139,80 @@ class HabitCard extends StatelessWidget {
   }
 }
 
-/// Tappable flame button for completing habits.
-class _FlameButton extends StatelessWidget {
+/// Action buttons for timer and quick complete.
+class _ActionButtons extends StatelessWidget {
+  final Habit habit;
   final double score;
   final bool isCompleted;
-  final VoidCallback? onTap;
+  final VoidCallback? onQuickComplete;
 
-  const _FlameButton({
+  const _ActionButtons({
+    required this.habit,
     required this.score,
     required this.isCompleted,
-    this.onTap,
+    this.onQuickComplete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isCompleted) {
+      // Show completed state - single checkmark
+      return _CompletedButton(score: score);
+    }
+
+    // Show dual buttons: timer flame + quick complete checkmark
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Timer button (flame) - main action
+        _TimerButton(
+          habit: habit,
+          score: score,
+        ),
+        const Gap(4),
+        // Quick complete button (small checkmark)
+        _QuickCompleteButton(
+          onTap: onQuickComplete,
+        ),
+      ],
+    );
+  }
+}
+
+/// Button showing completed state.
+class _CompletedButton extends StatelessWidget {
+  final double score;
+
+  const _CompletedButton({required this.score});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.getFlameColor(score).withValues(alpha: 0.15),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.check_circle,
+          size: 32,
+          color: AppColors.getFlameColor(score),
+        ),
+      ),
+    );
+  }
+}
+
+/// Flame button that opens the timer screen.
+class _TimerButton extends StatelessWidget {
+  final Habit habit;
+  final double score;
+
+  const _TimerButton({
+    required this.habit,
+    required this.score,
   });
 
   @override
@@ -151,29 +220,68 @@ class _FlameButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(28),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => TimerScreen(habit: habit),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(24),
         child: Container(
-          width: 56,
-          height: 56,
+          width: 48,
+          height: 48,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isCompleted
-                ? AppColors.getFlameColor(score).withValues(alpha: 0.15)
-                : Theme.of(context).colorScheme.surfaceContainerHighest,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
           child: Center(
-            child: isCompleted
-                ? Icon(
-                    Icons.check_circle,
-                    size: 32,
-                    color: AppColors.getFlameColor(score),
-                  )
-                : FlameWidget(
-                    score: score,
-                    size: 40,
-                    animate: false,
-                  ),
+            child: FlameWidget(
+              score: score,
+              size: 32,
+              animate: false,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Small quick complete button.
+class _QuickCompleteButton extends StatelessWidget {
+  final VoidCallback? onTap;
+
+  const _QuickCompleteButton({this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: Tooltip(
+        message: 'Quick complete',
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: theme.colorScheme.outline.withValues(alpha: 0.5),
+                width: 1.5,
+              ),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.check,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
         ),
       ),

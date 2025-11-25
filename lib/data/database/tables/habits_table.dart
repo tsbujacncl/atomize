@@ -53,6 +53,9 @@ class Habits extends Table {
   /// Last time decay was applied
   DateTimeColumn get lastDecayAt => dateTime().nullable()();
 
+  /// Timer duration in seconds for this habit (null = use default 120s / 2 min)
+  IntColumn get timerDuration => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/database/app_database.dart';
 import '../../providers/habit_provider.dart';
+import '../../widgets/duration_picker.dart';
 
 /// Screen for editing an existing habit.
 class EditHabitScreen extends ConsumerStatefulWidget {
@@ -27,6 +28,7 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
   final _whyController = TextEditingController();
 
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
+  int? _timerDuration; // null = use default (2 min)
   bool _isSaving = false;
   bool _isInitialized = false;
 
@@ -45,6 +47,7 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
     _nameController.text = habit.name;
     _locationController.text = habit.location ?? '';
     _whyController.text = habit.quickWhy ?? '';
+    _timerDuration = habit.timerDuration;
 
     // Parse scheduled time
     try {
@@ -139,6 +142,23 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
                     maxLines: 2,
                     onFieldSubmitted: (_) => _saveHabit(),
                   ),
+                  const Gap(24),
+
+                  // Timer duration (optional)
+                  _buildSectionLabel(context, 'Timer Duration'),
+                  const Gap(8),
+                  DurationPicker(
+                    selectedDuration: _timerDuration,
+                    onDurationChanged: (duration) {
+                      setState(() => _timerDuration = duration);
+                    },
+                    showDefaultOption: true,
+                  ),
+                  const Gap(8),
+                  Text(
+                    'How long to focus when completing this habit.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                   const Gap(40),
 
                   // Save button
@@ -231,6 +251,8 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
             quickWhy: _whyController.text.trim().isEmpty
                 ? null
                 : _whyController.text.trim(),
+            timerDuration: _timerDuration,
+            updateTimerDuration: true,
           );
 
       if (mounted) {

@@ -25,6 +25,9 @@ enum CompletionSource {
 
   /// Added through history editing
   historyEdit,
+
+  /// Completed via timer countdown
+  timer,
 }
 
 /// Days of the week for scheduling
