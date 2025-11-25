@@ -78,4 +78,12 @@ class CompletionRepository {
   /// Get the most recent completion for a habit
   Future<HabitCompletion?> getMostRecent(String habitId) =>
       _dao.getMostRecent(habitId);
+
+  /// Count distinct days with completions in a date range
+  Future<int> countCompletedDaysInRange(
+    String habitId,
+    DateTime start,
+    DateTime end,
+  ) =>
+      _dao.countCompletedDaysInRange(habitId, start, end);
 }

@@ -234,7 +234,8 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 
 - [x] Create `HabitDetailScreen`
 - [x] Large flame visualization
-- [x] Show: name, score, maturity, purpose
+- [x] Show: name, score, completion rate, purpose
+- [x] Completion rate with time period selector (1M | 3M | 1Y | All)
 - [x] Edit button → edit screen
 - [x] Archive button (soft delete)
 - [x] Delete button (with confirmation)
@@ -242,6 +243,9 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 **Files Created/Modified**:
 - `lib/presentation/screens/habit_detail/habit_detail_screen.dart` (implemented)
 - `lib/presentation/screens/habit_detail/edit_habit_screen.dart` (new)
+- `lib/presentation/providers/completion_stats_provider.dart` (new)
+- `lib/data/repositories/completion_repository.dart` (updated)
+- `lib/data/database/daos/completion_dao.dart` (updated)
 
 ---
 
@@ -337,6 +341,7 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 ## Changelog
 
 ### 2025-11-25
+- **M7 Enhancement**: Replaced maturity display with completion rate + time period selector (1M | 3M | 1Y | All)
 - **Milestone 7 Complete**: Habit Detail Screen - Large flame, stats, details, purpose display, edit/archive/delete functionality
 - **Milestone 6 Complete**: Create Habit Screen - Full form with What/When/Where/Why fields, time picker, validation, and save functionality
 

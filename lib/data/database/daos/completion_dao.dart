@@ -105,4 +105,21 @@ class CompletionDao extends DatabaseAccessor<AppDatabase>
           ..limit(1))
         .getSingleOrNull();
   }
+
+  /// Count distinct days with completions in a date range
+  Future<int> countCompletedDaysInRange(
+    String habitId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    final completions = await getInRange(habitId, start, end);
+    // Get unique dates (by day only, ignoring time)
+    final uniqueDays = <String>{};
+    for (final completion in completions) {
+      final dateKey =
+          '${completion.effectiveDate.year}-${completion.effectiveDate.month}-${completion.effectiveDate.day}';
+      uniqueDays.add(dateKey);
+    }
+    return uniqueDays.length;
+  }
 }

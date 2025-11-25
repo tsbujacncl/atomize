@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/database/app_database.dart';
+import '../../providers/completion_stats_provider.dart';
 import '../../providers/habit_provider.dart';
 import '../../widgets/flame_widget.dart';
 import 'edit_habit_screen.dart';
@@ -276,30 +277,78 @@ class _LargeFlameSection extends StatelessWidget {
   }
 }
 
-/// Stats section showing score and maturity
-class _StatsSection extends StatelessWidget {
+/// Stats section showing score, completion rate, and created date
+class _StatsSection extends ConsumerStatefulWidget {
   final Habit habit;
 
   const _StatsSection({required this.habit});
 
   @override
+  ConsumerState<_StatsSection> createState() => _StatsSectionState();
+}
+
+class _StatsSectionState extends ConsumerState<_StatsSection> {
+  StatsPeriod _selectedPeriod = StatsPeriod.oneMonth;
+
+  @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    final statsAsync = ref.watch(
+      completionStatsProvider((
+        habitId: widget.habit.id,
+        period: _selectedPeriod,
+      )),
+    );
+
+    return Column(
       children: [
-        _StatItem(
-          label: 'Score',
-          value: '${habit.score.round()}%',
-          color: AppColors.getFlameColor(habit.score),
+        // Stats row
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _StatItem(
+              label: 'Score',
+              value: '${widget.habit.score.round()}%',
+              color: AppColors.getFlameColor(widget.habit.score),
+            ),
+            statsAsync.when(
+              data: (stats) => _StatItem(
+                label: 'Completed',
+                value: '${stats.percentage.round()}%',
+                subtitle: '${stats.completedDays}/${stats.totalDays} days',
+              ),
+              loading: () => const _StatItem(
+                label: 'Completed',
+                value: '...',
+              ),
+              error: (_, __) => const _StatItem(
+                label: 'Completed',
+                value: '-',
+              ),
+            ),
+            _StatItem(
+              label: 'Created',
+              value: _formatDate(widget.habit.createdAt),
+            ),
+          ],
         ),
-        _StatItem(
-          label: 'Maturity',
-          value: '${habit.maturity}',
-          subtitle: 'days',
-        ),
-        _StatItem(
-          label: 'Created',
-          value: _formatDate(habit.createdAt),
+        const Gap(16),
+        // Period segmented control
+        SegmentedButton<StatsPeriod>(
+          segments: StatsPeriod.values
+              .map((p) => ButtonSegment(
+                    value: p,
+                    label: Text(p.label),
+                  ))
+              .toList(),
+          selected: {_selectedPeriod},
+          onSelectionChanged: (selected) {
+            setState(() => _selectedPeriod = selected.first);
+          },
+          showSelectedIcon: false,
+          style: ButtonStyle(
+            visualDensity: VisualDensity.compact,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
         ),
       ],
     );

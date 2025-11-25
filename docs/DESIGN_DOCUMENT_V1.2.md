@@ -218,11 +218,13 @@ When a user first reaches score 100:
 - Bar height represents score on that day
 - Colour matches flame colour at that score
 
-**Simple Stats:**
-- Total completions (lifetime)
-- Current score
-- Habit maturity (days with score > 50)
-- Longest period above score 80
+**Simple Stats (Habit Detail Screen):**
+- Current score (0-100%)
+- Completion rate (% of days completed in selected period)
+- Time period selector: 1M | 3M | 1Y | All
+- Created date
+
+Note: Maturity (days with score > 50) is tracked internally for decay calculations but not displayed to users.
 
 ---
 
