@@ -26,11 +26,12 @@ class WelcomeScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Spacer(flex: 2),
 
-              // Logo
-              const AtomizeLogoLarge(),
+              // Logo (centered)
+              const Center(child: AtomizeLogoLarge()),
 
               const Gap(24),
 
@@ -45,31 +46,27 @@ class WelcomeScreen extends StatelessWidget {
               const Spacer(flex: 3),
 
               // Get Started button
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: onGetStarted,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 4),
-                    child: Text('Get Started'),
-                  ),
+              FilledButton(
+                onPressed: onGetStarted,
+                style: FilledButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
                 ),
+                child: const Text('Get Started'),
               ),
 
               const Gap(16),
 
               // Sign in link (for returning users)
-              if (onSignIn != null) ...[
-                TextButton(
-                  onPressed: onSignIn,
-                  child: Text(
-                    'Already have an account? Sign in',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                  ),
+              TextButton(
+                onPressed: onSignIn,
+                child: Text(
+                  'Already have an account? Sign in',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                 ),
-              ],
+              ),
 
               const Gap(32),
             ],

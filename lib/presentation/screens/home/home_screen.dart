@@ -74,16 +74,20 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const CreateHabitScreen(),
-            ),
-          );
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('New Habit'),
+      floatingActionButton: todayHabitsAsync.whenOrNull(
+        data: (habits) => habits.isEmpty
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const CreateHabitScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('New Habit'),
+              ),
       ),
     );
   }

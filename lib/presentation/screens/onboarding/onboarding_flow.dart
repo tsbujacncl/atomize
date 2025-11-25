@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../providers/auth_provider.dart';
 import '../../providers/preferences_provider.dart';
 import '../create_habit/create_habit_screen.dart';
 import '../home/home_screen.dart';
+import '../settings/account_screen.dart';
 import 'tutorial_screen.dart';
 import 'welcome_screen.dart';
 
 /// Enum representing the current step in onboarding.
 enum OnboardingStep {
   welcome,
+  signIn,
   createHabit,
   tutorial,
 }
@@ -31,6 +34,12 @@ class OnboardingFlow extends ConsumerStatefulWidget {
 class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   OnboardingStep _currentStep = OnboardingStep.welcome;
 
+  void _goToSignIn() {
+    setState(() {
+      _currentStep = OnboardingStep.signIn;
+    });
+  }
+
   void _goToCreateHabit() {
     setState(() {
       _currentStep = OnboardingStep.createHabit;
@@ -41,6 +50,20 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     setState(() {
       _currentStep = OnboardingStep.tutorial;
     });
+  }
+
+  /// Called after successful sign-in - check if user has habits synced
+  Future<void> _onSignInComplete() async {
+    final authService = ref.read(authServiceProvider);
+    if (authService != null && !authService.isAnonymous) {
+      // User signed in successfully - complete onboarding and go to home
+      await _completeOnboarding();
+    } else {
+      // Still anonymous, go back to welcome
+      setState(() {
+        _currentStep = OnboardingStep.welcome;
+      });
+    }
   }
 
   Future<void> _completeOnboarding() async {
@@ -62,8 +85,11 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     return switch (_currentStep) {
       OnboardingStep.welcome => WelcomeScreen(
           onGetStarted: _goToCreateHabit,
-          // Sign in functionality not implemented yet
-          onSignIn: null,
+          onSignIn: _goToSignIn,
+        ),
+      OnboardingStep.signIn => _SignInWrapper(
+          onBack: () => setState(() => _currentStep = OnboardingStep.welcome),
+          onSignInComplete: _onSignInComplete,
         ),
       OnboardingStep.createHabit => CreateHabitScreen(
           onHabitCreated: _goToTutorial,
@@ -73,5 +99,49 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
           onComplete: _completeOnboarding,
         ),
     };
+  }
+}
+
+/// Wrapper for AccountScreen during onboarding.
+class _SignInWrapper extends ConsumerStatefulWidget {
+  final VoidCallback onBack;
+  final VoidCallback onSignInComplete;
+
+  const _SignInWrapper({
+    required this.onBack,
+    required this.onSignInComplete,
+  });
+
+  @override
+  ConsumerState<_SignInWrapper> createState() => _SignInWrapperState();
+}
+
+class _SignInWrapperState extends ConsumerState<_SignInWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    // Listen for auth changes
+    _checkAuthState();
+  }
+
+  void _checkAuthState() {
+    final authService = ref.read(authServiceProvider);
+    authService?.onAuthStateChange.listen((state) {
+      if (mounted && !authService.isAnonymous) {
+        widget.onSignInComplete();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Use PopScope to handle back navigation
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) widget.onBack();
+      },
+      child: const AccountScreen(),
+    );
   }
 }

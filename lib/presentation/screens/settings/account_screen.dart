@@ -21,7 +21,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   final _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
-  bool _isSignUp = true; // Default to sign up for new users
+  bool _isSignUp = false; // Default to sign in for returning users
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   String? _error;
@@ -149,12 +149,12 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                   SegmentedButton<bool>(
                     segments: const [
                       ButtonSegment(
-                        value: true,
-                        label: Text('Create Account'),
-                      ),
-                      ButtonSegment(
                         value: false,
                         label: Text('Sign In'),
+                      ),
+                      ButtonSegment(
+                        value: true,
+                        label: Text('Create Account'),
                       ),
                     ],
                     selected: {_isSignUp},
