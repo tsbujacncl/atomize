@@ -63,3 +63,21 @@ class CompletionNotifier extends Notifier<void> {
 /// Provider for the CompletionNotifier.
 final completionNotifierProvider =
     NotifierProvider<CompletionNotifier, void>(CompletionNotifier.new);
+
+/// Provider that applies day-end decay when app starts.
+///
+/// This should be watched once during app initialization to ensure
+/// decay is applied for any missed days since last app open.
+/// Returns the number of decay events applied.
+final dayBoundaryDecayProvider = FutureProvider<int>((ref) async {
+  final scoreService = ref.read(scoreServiceProvider);
+  final decayCount = await scoreService.applyDayEndDecay();
+
+  // If any decay was applied, refresh habit providers
+  if (decayCount > 0) {
+    ref.invalidate(habitNotifierProvider);
+    ref.invalidate(todayHabitsProvider);
+  }
+
+  return decayCount;
+});

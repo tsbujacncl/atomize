@@ -117,38 +117,79 @@ class ScoreService {
   /// Apply day-end decay to all habits that weren't completed.
   ///
   /// Called at day boundary (default 4am) or when app opens.
-  /// Only decays habits that weren't completed on the previous effective date.
-  Future<void> applyDayEndDecay() async {
+  /// Handles multi-day gaps: if user hasn't opened app for several days,
+  /// decay is applied for each missed day.
+  ///
+  /// Returns the number of decay events applied.
+  Future<int> applyDayEndDecay() async {
     final now = DateTime.now();
-    final effectiveDate = await _preferencesRepository.getEffectiveDate(now);
-
-    // The date we need to check completions for is yesterday's effective date
-    final previousEffectiveDate =
-        effectiveDate.subtract(const Duration(days: 1));
-
+    final todayEffective = await _preferencesRepository.getEffectiveDate(now);
     final habits = await _habitRepository.getAllActive();
+    int totalDecayEvents = 0;
 
     for (final habit in habits) {
-      // Check if habit was completed on the previous effective date
-      final wasCompleted = await _completionRepository.wasCompletedOnDate(
-        habit.id,
-        previousEffectiveDate,
-      );
-
-      // Skip if completed or if we already applied decay for this period
-      if (wasCompleted) continue;
-      if (habit.lastDecayAt != null &&
-          _isSameDay(habit.lastDecayAt!, effectiveDate)) {
-        continue;
+      // Determine the starting point for decay check
+      // Use lastDecayAt if available, otherwise use createdAt
+      DateTime startDate;
+      if (habit.lastDecayAt != null) {
+        startDate = habit.lastDecayAt!;
+      } else {
+        // For habits that have never had decay applied,
+        // start from the day after creation
+        startDate = DateTime(
+          habit.createdAt.year,
+          habit.createdAt.month,
+          habit.createdAt.day,
+        );
       }
 
-      // Apply decay
-      final decay = calculateDecay(habit.score, habit.maturity);
-      final newScore = math.max(0.0, habit.score - decay);
+      // Calculate days between lastDecayAt and today (exclusive of today)
+      // We check each day to see if decay should be applied
+      var currentScore = habit.score;
+      var currentMaturity = habit.maturity;
+      var checkDate = startDate.add(const Duration(days: 1));
 
-      await _habitRepository.updateScore(habit.id, newScore, habit.maturity);
-      await _habitRepository.updateLastDecay(habit.id, effectiveDate);
+      while (checkDate.isBefore(todayEffective) ||
+          _isSameDay(checkDate, todayEffective)) {
+        // Check if habit was completed on the previous day
+        // (we're decaying for not completing on checkDate - 1 day)
+        final dayToCheck = checkDate.subtract(const Duration(days: 1));
+
+        // Don't check days before the habit was created
+        if (dayToCheck.isBefore(DateTime(
+          habit.createdAt.year,
+          habit.createdAt.month,
+          habit.createdAt.day,
+        ))) {
+          checkDate = checkDate.add(const Duration(days: 1));
+          continue;
+        }
+
+        final wasCompleted = await _completionRepository.wasCompletedOnDate(
+          habit.id,
+          dayToCheck,
+        );
+
+        if (!wasCompleted && currentScore > 0) {
+          // Apply decay for this missed day
+          final decay = calculateDecay(currentScore, currentMaturity);
+          currentScore = math.max(0.0, currentScore - decay);
+          totalDecayEvents++;
+        }
+
+        checkDate = checkDate.add(const Duration(days: 1));
+      }
+
+      // Update the habit if score changed
+      if (currentScore != habit.score) {
+        await _habitRepository.updateScore(habit.id, currentScore, currentMaturity);
+      }
+
+      // Always update lastDecayAt to today so we don't reprocess
+      await _habitRepository.updateLastDecay(habit.id, todayEffective);
     }
+
+    return totalDecayEvents;
   }
 
   /// Apply partial credit for count-type habits (Phase 2).

@@ -5,7 +5,7 @@
 This document tracks the development progress of Atomize V1.2, a complete redesign focusing on anti-addictive, supportive habit tracking with flame-based scoring.
 
 **Last Updated**: 2025-11-25
-**Current Version**: V1.2 Foundation (Milestones 0-10)
+**Current Version**: V1.2 Foundation (Milestones 0-11)
 **Branch**: master
 **Design Document**: [DESIGN_DOCUMENT_V1.2.md](./DESIGN_DOCUMENT_V1.2.md)
 
@@ -317,14 +317,26 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 
 ---
 
-## Pending Milestones
+### ✅ Milestone 11: Grace Window & Day Boundary
 
-### ⏳ Milestone 11: Grace Window & Day Boundary
-**Status**: Pending
+**Status**: Complete
 
-- [ ] Implement grace window logic (4am boundary)
-- [ ] Apply decay at day boundary
-- [ ] Handle timezone correctly
+- [x] Grace window logic (4am boundary) - already implemented in PreferencesRepository.getEffectiveDate()
+- [x] Multi-day decay handling - ScoreService.applyDayEndDecay() now handles gaps when user doesn't open app for multiple days
+- [x] Day boundary decay provider - dayBoundaryDecayProvider triggers on app start
+- [x] App initialization integration - decay check runs automatically when returning users open app
+
+**How it works:**
+- `getEffectiveDate()` returns yesterday's date if current time is before 4am (day boundary)
+- Users can complete habits until 4am the next day (grace window)
+- When app opens, `dayBoundaryDecayProvider` checks all habits
+- For each habit, iterates through days since `lastDecayAt` and applies decay for missed days
+- Multi-day gaps are handled correctly (e.g., 5 days away = 5 decay events per incomplete habit)
+
+**Files Modified:**
+- `lib/domain/services/score_service.dart` - Updated applyDayEndDecay() for multi-day gaps
+- `lib/presentation/providers/score_provider.dart` - Added dayBoundaryDecayProvider
+- `lib/app.dart` - Integrated decay check on app start
 
 ---
 
@@ -377,6 +389,7 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 ## Changelog
 
 ### 2025-11-25
+- **Milestone 11 Complete**: Grace Window & Day Boundary - Multi-day decay handling, automatic decay on app start, 4am grace window for completing habits
 - **Milestone 10 Complete**: Settings & Onboarding - Full settings screen with theme, notifications, quiet hours, break mode, and about. Onboarding flow with 3 screens (welcome, create habit, tutorial). Reactive theme mode.
 - **Milestone 9 Complete**: Progress Bar Chart - Last 30 days completion history with flame-colored bars and stats chip
 - **Milestone 8 Complete**: Basic Notifications - Pre/post reminders with quiet hours and break mode support

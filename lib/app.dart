@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
 import 'presentation/providers/preferences_provider.dart';
+import 'presentation/providers/score_provider.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/onboarding/onboarding_flow.dart';
 
@@ -49,6 +50,9 @@ class _AppHome extends ConsumerWidget {
     return onboardingCompletedAsync.when(
       data: (isCompleted) {
         if (isCompleted) {
+          // Trigger day boundary decay check for returning users
+          // This runs in the background and doesn't block the UI
+          ref.watch(dayBoundaryDecayProvider);
           return const HomeScreen();
         } else {
           return const OnboardingFlow();
