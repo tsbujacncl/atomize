@@ -36,7 +36,10 @@ class AppDatabase extends _$AppDatabase {
       onUpgrade: (Migrator m, int from, int to) async {
         // Migration from v1 to v2: Add timerDuration column
         if (from < 2) {
-          await m.addColumn(habits, habits.timerDuration);
+          // Use raw SQL to ensure column is added
+          await customStatement(
+            'ALTER TABLE habits ADD COLUMN timer_duration INTEGER',
+          );
         }
       },
     );
