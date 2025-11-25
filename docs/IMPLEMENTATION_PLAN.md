@@ -5,7 +5,7 @@
 This document tracks the development progress of Atomize V1.2, a complete redesign focusing on anti-addictive, supportive habit tracking with flame-based scoring.
 
 **Last Updated**: 2025-11-25
-**Current Version**: V1.2 Foundation (Milestones 0-9)
+**Current Version**: V1.2 Foundation (Milestones 0-10)
 **Branch**: master
 **Design Document**: [DESIGN_DOCUMENT_V1.2.md](./DESIGN_DOCUMENT_V1.2.md)
 
@@ -289,16 +289,35 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 
 ---
 
-## Pending Milestones
+### ✅ Milestone 10: Settings & Onboarding
 
-### ⏳ Milestone 10: Settings & Onboarding
-**Status**: Pending
+**Status**: Complete
 
-- [ ] Create `SettingsScreen`
-- [ ] Create onboarding flow (3 screens)
-- [ ] Track onboarding completion
+- [x] Create `SettingsScreen` with full functionality:
+  - Theme selector (system/light/dark)
+  - Notification toggle with quiet hours and reminder timing
+  - Break mode (3/7/14/30 day options)
+  - Support Atomize (Buy Me a Coffee link)
+  - About section with logo, version, and privacy policy
+- [x] Create onboarding flow (3 screens):
+  - Welcome screen with logo and tagline
+  - Create first habit screen
+  - Tutorial screen (tap flame demo)
+- [x] Track onboarding completion via preferences
+- [x] Update app.dart to route based on onboarding status
+- [x] Theme mode reactive to user preferences
+
+**Files Created/Modified**:
+- `lib/presentation/screens/settings/settings_screen.dart` (implemented)
+- `lib/presentation/screens/onboarding/tutorial_screen.dart` (new)
+- `lib/presentation/screens/onboarding/onboarding_flow.dart` (new)
+- `lib/presentation/screens/create_habit/create_habit_screen.dart` (updated - callback support)
+- `lib/app.dart` (updated - onboarding routing + theme)
+- `pubspec.yaml` (added url_launcher)
 
 ---
+
+## Pending Milestones
 
 ### ⏳ Milestone 11: Grace Window & Day Boundary
 **Status**: Pending
@@ -358,6 +377,7 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 ## Changelog
 
 ### 2025-11-25
+- **Milestone 10 Complete**: Settings & Onboarding - Full settings screen with theme, notifications, quiet hours, break mode, and about. Onboarding flow with 3 screens (welcome, create habit, tutorial). Reactive theme mode.
 - **Milestone 9 Complete**: Progress Bar Chart - Last 30 days completion history with flame-colored bars and stats chip
 - **Milestone 8 Complete**: Basic Notifications - Pre/post reminders with quiet hours and break mode support
 - **M7 Enhancement**: Replaced maturity display with completion rate + time period selector (1M | 3M | 1Y | All)

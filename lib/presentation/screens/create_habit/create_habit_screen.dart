@@ -14,7 +14,19 @@ import '../../providers/habit_provider.dart';
 /// - Where (location) — optional
 /// - Why (purpose) — optional
 class CreateHabitScreen extends ConsumerStatefulWidget {
-  const CreateHabitScreen({super.key});
+  /// Optional callback when habit is successfully created.
+  /// If provided, this is called instead of Navigator.pop().
+  /// Used during onboarding flow.
+  final VoidCallback? onHabitCreated;
+
+  /// Whether to show the close button in the app bar.
+  final bool showCloseButton;
+
+  const CreateHabitScreen({
+    super.key,
+    this.onHabitCreated,
+    this.showCloseButton = true,
+  });
 
   @override
   ConsumerState<CreateHabitScreen> createState() => _CreateHabitScreenState();
@@ -42,10 +54,13 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('New Habit'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        leading: widget.showCloseButton
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea(
         child: Form(
@@ -216,8 +231,12 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
           ),
         );
 
-        // Navigate back
-        Navigator.of(context).pop();
+        // Call callback if provided (onboarding flow), otherwise navigate back
+        if (widget.onHabitCreated != null) {
+          widget.onHabitCreated!();
+        } else {
+          Navigator.of(context).pop();
+        }
       }
     } catch (e) {
       if (mounted) {
