@@ -7,6 +7,8 @@ import 'repository_providers.dart';
 import 'habit_provider.dart';
 import 'today_habits_provider.dart';
 
+export '../../domain/services/score_service.dart' show CompletionResult;
+
 /// Provides the ScoreService instance.
 final scoreServiceProvider = Provider<ScoreService>((ref) {
   return ScoreService(
@@ -27,27 +29,47 @@ class CompletionNotifier extends Notifier<void> {
 
   /// Complete a habit and update its score.
   ///
-  /// Returns the new score after completion.
-  Future<double> completeHabit({
+  /// Returns [CompletionResult] with the new score and info needed for undo,
+  /// or null if already completed today.
+  Future<CompletionResult?> completeHabit({
     required String habitId,
     CompletionSource source = CompletionSource.manual,
     double creditPercentage = 100.0,
   }) async {
-    final newScore = await _scoreService.applyCompletion(
+    final result = await _scoreService.applyCompletion(
       habitId: habitId,
       source: source,
       creditPercentage: creditPercentage,
     );
 
-    // Cancel pending notifications for this habit
-    final notificationService = ref.read(notificationServiceProvider);
-    await notificationService.cancelHabitNotifications(habitId);
+    if (result != null) {
+      // Cancel pending notifications for this habit
+      final notificationService = ref.read(notificationServiceProvider);
+      await notificationService.cancelHabitNotifications(habitId);
+    }
 
     // Refresh related providers
     ref.invalidate(habitNotifierProvider);
     ref.invalidate(todayHabitsProvider);
 
-    return newScore;
+    return result;
+  }
+
+  /// Undo a habit completion, restoring the previous score.
+  Future<void> undoCompletion({
+    required String habitId,
+    required CompletionResult completionResult,
+  }) async {
+    await _scoreService.undoCompletion(
+      habitId: habitId,
+      completionId: completionResult.completionId,
+      previousScore: completionResult.previousScore,
+      previousMaturity: completionResult.previousMaturity,
+    );
+
+    // Refresh related providers
+    ref.invalidate(habitNotifierProvider);
+    ref.invalidate(todayHabitsProvider);
   }
 
   /// Increment count for a count-type habit.

@@ -8,6 +8,7 @@ import '../../../data/database/app_database.dart';
 import '../../../domain/models/enums.dart';
 import '../../providers/habit_provider.dart';
 import '../../widgets/duration_picker.dart';
+import '../../widgets/icon_picker.dart';
 
 /// Screen for editing an existing habit.
 class EditHabitScreen extends ConsumerStatefulWidget {
@@ -34,6 +35,7 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
   HabitType _habitType = HabitType.binary;
   int? _timerDuration; // null = use default (2 min)
   String? _afterHabitId; // habit stacking
+  String? _selectedIcon;
   bool _isSaving = false;
   bool _isInitialized = false;
 
@@ -56,6 +58,7 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
     _whyController.text = habit.quickWhy ?? '';
     _timerDuration = habit.timerDuration;
     _afterHabitId = habit.afterHabitId;
+    _selectedIcon = habit.icon;
     _habitType = HabitType.values.firstWhere(
       (t) => t.name == habit.type,
       orElse: () => HabitType.binary,
@@ -107,15 +110,29 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
                   // What - Habit name (required)
                   _buildSectionLabel(context, 'What', isRequired: true),
                   const Gap(8),
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      hintText: 'e.g., Do yoga, Read, Meditate',
-                    ),
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.next,
-                    validator: _validateName,
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      IconPickerButton(
+                        iconId: _selectedIcon,
+                        onChanged: (iconId) {
+                          setState(() => _selectedIcon = iconId);
+                        },
+                      ),
+                      const Gap(12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(
+                            hintText: 'e.g., Do yoga, Read, Meditate',
+                          ),
+                          textCapitalization: TextCapitalization.sentences,
+                          textInputAction: TextInputAction.next,
+                          validator: _validateName,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                        ),
+                      ),
+                    ],
                   ),
 
                   // Count target (only for count type habits)
@@ -362,6 +379,8 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
             updateWeeklyTarget: _habitType == HabitType.weekly,
             afterHabitId: _afterHabitId,
             updateAfterHabitId: true,
+            icon: _selectedIcon,
+            updateIcon: true,
           );
 
       if (mounted) {

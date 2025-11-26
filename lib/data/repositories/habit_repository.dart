@@ -41,6 +41,7 @@ class HabitRepository {
     int? weeklyTarget,
     int? timerDuration,
     String? afterHabitId,
+    String? icon,
   }) async {
     final id = _uuid.v4();
     final now = DateTime.now();
@@ -57,6 +58,7 @@ class HabitRepository {
         weeklyTarget: Value(weeklyTarget),
         timerDuration: Value(timerDuration),
         afterHabitId: Value(afterHabitId),
+        icon: Value(icon),
       ),
     );
 
@@ -75,6 +77,7 @@ class HabitRepository {
         'weekly_target': weeklyTarget,
         'timer_duration': timerDuration,
         'after_habit_id': afterHabitId,
+        'icon': icon,
         'score': 0.0,
         'maturity': 0,
         'is_archived': false,
@@ -100,6 +103,8 @@ class HabitRepository {
     bool updateWeeklyTarget = false,
     String? afterHabitId,
     bool updateAfterHabitId = false,
+    String? icon,
+    bool updateIcon = false,
   }) async {
     await _dao.updateFields(
       id,
@@ -117,6 +122,7 @@ class HabitRepository {
             updateWeeklyTarget ? Value(weeklyTarget) : const Value.absent(),
         afterHabitId:
             updateAfterHabitId ? Value(afterHabitId) : const Value.absent(),
+        icon: updateIcon ? Value(icon) : const Value.absent(),
       ),
     );
 
@@ -221,6 +227,7 @@ class HabitRepository {
         'weekly_target': habit.weeklyTarget,
         'after_habit_id': habit.afterHabitId,
         'timer_duration': habit.timerDuration,
+        'icon': habit.icon,
         'score': habit.score,
         'maturity': habit.maturity,
         'is_archived': habit.isArchived,

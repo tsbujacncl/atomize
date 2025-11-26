@@ -8,6 +8,7 @@ import '../../../data/database/app_database.dart';
 import '../../../domain/models/enums.dart';
 import '../../providers/habit_provider.dart';
 import '../../widgets/duration_picker.dart';
+import '../../widgets/icon_picker.dart';
 
 /// Screen for creating a new habit.
 ///
@@ -47,6 +48,7 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
   HabitType _habitType = HabitType.binary;
   int? _timerDuration; // null = use default (2 min)
   String? _afterHabitId; // habit stacking
+  String? _selectedIcon; // habit icon
   bool _isSaving = false;
 
   // Reframing suggestion state
@@ -192,6 +194,30 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
                 const Gap(12),
                 _ReframeSuggestionBanner(suggestion: _reframeSuggestion!),
               ],
+              const Gap(24),
+
+              // Icon picker
+              _buildSectionLabel(context, 'Icon'),
+              const Gap(8),
+              Row(
+                children: [
+                  IconPickerButton(
+                    iconId: _selectedIcon,
+                    onChanged: (iconId) {
+                      setState(() => _selectedIcon = iconId);
+                    },
+                  ),
+                  const Gap(12),
+                  Expanded(
+                    child: Text(
+                      _selectedIcon == null
+                          ? 'Choose an icon for your habit'
+                          : 'Tap to change icon',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
               const Gap(24),
 
               // Type - Habit type selector
@@ -443,6 +469,7 @@ class _CreateHabitScreenState extends ConsumerState<CreateHabitScreen> {
                 : null,
             timerDuration: _timerDuration,
             afterHabitId: _afterHabitId,
+            icon: _selectedIcon,
           );
 
       if (mounted) {

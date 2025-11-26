@@ -2,18 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/constants/habit_icons.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/database/app_database.dart';
 import '../providers/today_habits_provider.dart';
 import '../screens/habit_detail/habit_detail_screen.dart';
 import '../screens/timer/timer_screen.dart';
-import 'flame_widget.dart';
+import 'flame_score.dart';
 
 /// Card widget displaying a single habit for the home screen.
+///
+/// New layout:
+/// - Left: Habit icon (tap → timer, long press → quick complete)
+/// - Middle: Habit name and details
+/// - Right: Flame with score
 class HabitCard extends StatelessWidget {
   final TodayHabit todayHabit;
 
-  /// Called when quick complete is tapped (checkmark button).
+  /// Called when quick complete is confirmed.
   final VoidCallback? onQuickComplete;
 
   /// Called when count is incremented for count-type habits.
@@ -48,18 +54,19 @@ class HabitCard extends StatelessWidget {
         },
         onLongPress: onLongPress,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Action buttons
-              _ActionButtons(
+              // Habit icon button (left)
+              _HabitIconButton(
                 todayHabit: todayHabit,
-                onQuickComplete: onQuickComplete,
+                onTap: () => _openTimer(context, habit),
+                onLongPress: () => _showQuickCompleteDialog(context),
                 onCountIncrement: onCountIncrement,
               ),
-              const Gap(16),
+              const Gap(12),
 
-              // Habit info
+              // Habit info (middle)
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,17 +118,46 @@ class HabitCard extends StatelessWidget {
                 ),
               ),
 
-              // Score indicator
-              Text(
-                '${score.round()}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.getFlameColor(score),
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
+              // Flame score (right)
+              FlameScore(score: score, size: 44),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _openTimer(BuildContext context, Habit habit) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => TimerScreen(habit: habit),
+      ),
+    );
+  }
+
+  void _showQuickCompleteDialog(BuildContext context) {
+    if (todayHabit.isCompletedToday || onQuickComplete == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Quick Complete'),
+        content: const Text(
+          'Complete this habit without starting the timer?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onQuickComplete?.call();
+            },
+            child: const Text('Complete'),
+          ),
+        ],
       ),
     );
   }
@@ -139,186 +175,60 @@ class HabitCard extends StatelessWidget {
   }
 }
 
-/// Action buttons for timer and quick complete.
-class _ActionButtons extends StatelessWidget {
+/// Icon button showing the habit icon with progress ring and completion state.
+class _HabitIconButton extends StatelessWidget {
   final TodayHabit todayHabit;
-  final VoidCallback? onQuickComplete;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
   final VoidCallback? onCountIncrement;
 
-  const _ActionButtons({
+  const _HabitIconButton({
     required this.todayHabit,
-    this.onQuickComplete,
+    required this.onTap,
+    required this.onLongPress,
     this.onCountIncrement,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final habit = todayHabit.habit;
-    final score = habit.score;
     final isCompleted = todayHabit.isCompletedToday;
     final isCountType = todayHabit.isCountType;
     final isWeeklyType = todayHabit.isWeeklyType;
+    final score = habit.score;
+    final color = AppColors.getFlameColor(score);
 
-    if (isCompleted) {
-      // Show completed state
-      if (isCountType) {
-        return _CountCompletedButton(
-          score: score,
-          count: todayHabit.todayCount,
-          target: todayHabit.countTarget,
-        );
-      }
-      if (isWeeklyType) {
-        return _WeeklyCompletedButton(
-          score: score,
-          count: todayHabit.weeklyCount,
-          target: todayHabit.weeklyTarget,
-        );
-      }
-      return _CompletedButton(score: score);
-    }
+    // Get the icon
+    final iconData = getIconData(habit.icon);
 
-    // For count-type habits, show count progress button
+    // Determine progress for count/weekly types
+    double? progress;
+    String? progressText;
     if (isCountType) {
-      return _CountProgressButton(
-        score: score,
-        count: todayHabit.todayCount,
-        target: todayHabit.countTarget,
-        progress: todayHabit.countProgress,
-        onTap: onCountIncrement,
-      );
+      progress = todayHabit.countProgress;
+      progressText = '${todayHabit.todayCount}/${todayHabit.countTarget}';
+    } else if (isWeeklyType) {
+      progress = todayHabit.weeklyProgress;
+      progressText = '${todayHabit.weeklyCount}/${todayHabit.weeklyTarget}';
     }
 
-    // For weekly-type habits, show weekly progress button
-    if (isWeeklyType) {
-      return _WeeklyProgressButton(
-        habit: habit,
-        score: score,
-        count: todayHabit.weeklyCount,
-        target: todayHabit.weeklyTarget,
-        progress: todayHabit.weeklyProgress,
-        onQuickComplete: onQuickComplete,
-      );
-    }
-
-    // Show dual buttons: timer flame + quick complete checkmark
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Timer button (flame) - main action
-        _TimerButton(
-          habit: habit,
-          score: score,
-        ),
-        const Gap(4),
-        // Quick complete button (small checkmark)
-        _QuickCompleteButton(
-          onTap: onQuickComplete,
-        ),
-      ],
-    );
-  }
-}
-
-/// Button showing completed state for binary habits.
-class _CompletedButton extends StatelessWidget {
-  final double score;
-
-  const _CompletedButton({required this.score});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.getFlameColor(score).withValues(alpha: 0.15),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.check_circle,
-          size: 32,
-          color: AppColors.getFlameColor(score),
-        ),
-      ),
-    );
-  }
-}
-
-/// Button showing completed state for count-type habits.
-class _CountCompletedButton extends StatelessWidget {
-  final double score;
-  final int count;
-  final int target;
-
-  const _CountCompletedButton({
-    required this.score,
-    required this.count,
-    required this.target,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = AppColors.getFlameColor(score);
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color.withValues(alpha: 0.15),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.check,
-              size: 18,
-              color: color,
-            ),
-            Text(
-              '$count/$target',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Progress button for count-type habits showing count and progress ring.
-class _CountProgressButton extends StatelessWidget {
-  final double score;
-  final int count;
-  final int target;
-  final double progress;
-  final VoidCallback? onTap;
-
-  const _CountProgressButton({
-    required this.score,
-    required this.count,
-    required this.target,
-    required this.progress,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = AppColors.getFlameColor(score);
+    // For count type habits, tap increments the count
+    final effectiveOnTap = isCountType && !isCompleted && onCountIncrement != null
+        ? onCountIncrement!
+        : onTap;
 
     return Material(
       color: Colors.transparent,
       child: Tooltip(
-        message: 'Tap to add one',
+        message: isCountType
+            ? 'Tap to add one'
+            : isCompleted
+                ? 'Completed'
+                : 'Tap for timer, hold to quick complete',
         child: InkWell(
-          onTap: onTap,
+          onTap: effectiveOnTap,
+          onLongPress: isCompleted ? null : onLongPress,
           borderRadius: BorderRadius.circular(28),
           child: SizedBox(
             width: 56,
@@ -332,277 +242,81 @@ class _CountProgressButton extends StatelessWidget {
                   height: 56,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: theme.colorScheme.surfaceContainerHighest,
+                    color: isCompleted
+                        ? color.withValues(alpha: 0.15)
+                        : theme.colorScheme.surfaceContainerHighest,
                   ),
                 ),
-                // Progress indicator
-                SizedBox(
-                  width: 52,
-                  height: 52,
-                  child: CircularProgressIndicator(
-                    value: progress,
-                    strokeWidth: 3,
-                    backgroundColor: theme.colorScheme.outline.withValues(alpha: 0.2),
-                    valueColor: AlwaysStoppedAnimation<Color>(color),
+
+                // Progress ring (for count/weekly types)
+                if (progress != null && !isCompleted)
+                  SizedBox(
+                    width: 52,
+                    height: 52,
+                    child: CircularProgressIndicator(
+                      value: progress,
+                      strokeWidth: 3,
+                      backgroundColor: theme.colorScheme.outline.withValues(alpha: 0.2),
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                    ),
                   ),
+
+                // Icon
+                Icon(
+                  iconData,
+                  size: 28,
+                  color: isCompleted ? color : theme.colorScheme.onSurfaceVariant,
                 ),
-                // Count text
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$count',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+
+                // Completion tick overlay
+                if (isCompleted)
+                  Positioned(
+                    right: 2,
+                    bottom: 2,
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
                         color: color,
-                        height: 1,
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        size: 14,
+                        color: Colors.white,
                       ),
                     ),
-                    Text(
-                      '/$target',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 10,
-                        color: theme.colorScheme.onSurfaceVariant,
-                        height: 1,
+                  ),
+
+                // Progress text (for count/weekly when not completed)
+                if (progressText != null && !isCompleted)
+                  Positioned(
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: color.withValues(alpha: 0.5),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        progressText,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Flame button that opens the timer screen.
-class _TimerButton extends StatelessWidget {
-  final Habit habit;
-  final double score;
-
-  const _TimerButton({
-    required this.habit,
-    required this.score,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => TimerScreen(habit: habit),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
-          child: Center(
-            child: FlameWidget(
-              score: score,
-              size: 32,
-              animate: false,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Small quick complete button.
-class _QuickCompleteButton extends StatelessWidget {
-  final VoidCallback? onTap;
-
-  const _QuickCompleteButton({this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Material(
-      color: Colors.transparent,
-      child: Tooltip(
-        message: 'Quick complete',
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: theme.colorScheme.outline.withValues(alpha: 0.5),
-                width: 1.5,
-              ),
-            ),
-            child: Center(
-              child: Icon(
-                Icons.check,
-                size: 16,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Button showing completed state for weekly-type habits.
-class _WeeklyCompletedButton extends StatelessWidget {
-  final double score;
-  final int count;
-  final int target;
-
-  const _WeeklyCompletedButton({
-    required this.score,
-    required this.count,
-    required this.target,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = AppColors.getFlameColor(score);
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color.withValues(alpha: 0.15),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.calendar_view_week,
-              size: 18,
-              color: color,
-            ),
-            Text(
-              '$count/$target',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Progress button for weekly-type habits showing week progress and action buttons.
-class _WeeklyProgressButton extends StatelessWidget {
-  final Habit habit;
-  final double score;
-  final int count;
-  final int target;
-  final double progress;
-  final VoidCallback? onQuickComplete;
-
-  const _WeeklyProgressButton({
-    required this.habit,
-    required this.score,
-    required this.count,
-    required this.target,
-    required this.progress,
-    this.onQuickComplete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = AppColors.getFlameColor(score);
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Weekly progress indicator with timer
-        Material(
-          color: Colors.transparent,
-          child: Tooltip(
-            message: '$count of $target this week',
-            child: InkWell(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => TimerScreen(habit: habit),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(24),
-              child: SizedBox(
-                width: 48,
-                height: 48,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Background circle
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: theme.colorScheme.surfaceContainerHighest,
-                      ),
-                    ),
-                    // Progress indicator
-                    SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: CircularProgressIndicator(
-                        value: progress,
-                        strokeWidth: 3,
-                        backgroundColor:
-                            theme.colorScheme.outline.withValues(alpha: 0.2),
-                        valueColor: AlwaysStoppedAnimation<Color>(color),
-                      ),
-                    ),
-                    // Week icon and count
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.calendar_view_week,
-                          size: 16,
-                          color: color,
-                        ),
-                        Text(
-                          '$count/$target',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: color,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        const Gap(4),
-        // Quick complete button
-        _QuickCompleteButton(onTap: onQuickComplete),
-      ],
     );
   }
 }

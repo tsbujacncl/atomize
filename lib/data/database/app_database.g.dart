@@ -210,6 +210,15 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -230,6 +239,7 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
     isArchived,
     lastDecayAt,
     timerDuration,
+    icon,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -375,6 +385,12 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
         ),
       );
     }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    }
     return context;
   }
 
@@ -456,6 +472,10 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
         DriftSqlType.int,
         data['${effectivePrefix}timer_duration'],
       ),
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      ),
     );
   }
 
@@ -519,6 +539,9 @@ class Habit extends DataClass implements Insertable<Habit> {
 
   /// Timer duration in seconds for this habit (null = use default 120s / 2 min)
   final int? timerDuration;
+
+  /// Icon identifier for the habit (Material Icons name, e.g. 'fitness_center')
+  final String? icon;
   const Habit({
     required this.id,
     required this.name,
@@ -538,6 +561,7 @@ class Habit extends DataClass implements Insertable<Habit> {
     required this.isArchived,
     this.lastDecayAt,
     this.timerDuration,
+    this.icon,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -579,6 +603,9 @@ class Habit extends DataClass implements Insertable<Habit> {
     }
     if (!nullToAbsent || timerDuration != null) {
       map['timer_duration'] = Variable<int>(timerDuration);
+    }
+    if (!nullToAbsent || icon != null) {
+      map['icon'] = Variable<String>(icon);
     }
     return map;
   }
@@ -623,6 +650,7 @@ class Habit extends DataClass implements Insertable<Habit> {
       timerDuration: timerDuration == null && nullToAbsent
           ? const Value.absent()
           : Value(timerDuration),
+      icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
     );
   }
 
@@ -650,6 +678,7 @@ class Habit extends DataClass implements Insertable<Habit> {
       isArchived: serializer.fromJson<bool>(json['isArchived']),
       lastDecayAt: serializer.fromJson<DateTime?>(json['lastDecayAt']),
       timerDuration: serializer.fromJson<int?>(json['timerDuration']),
+      icon: serializer.fromJson<String?>(json['icon']),
     );
   }
   @override
@@ -674,6 +703,7 @@ class Habit extends DataClass implements Insertable<Habit> {
       'isArchived': serializer.toJson<bool>(isArchived),
       'lastDecayAt': serializer.toJson<DateTime?>(lastDecayAt),
       'timerDuration': serializer.toJson<int?>(timerDuration),
+      'icon': serializer.toJson<String?>(icon),
     };
   }
 
@@ -696,6 +726,7 @@ class Habit extends DataClass implements Insertable<Habit> {
     bool? isArchived,
     Value<DateTime?> lastDecayAt = const Value.absent(),
     Value<int?> timerDuration = const Value.absent(),
+    Value<String?> icon = const Value.absent(),
   }) => Habit(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -717,6 +748,7 @@ class Habit extends DataClass implements Insertable<Habit> {
     timerDuration: timerDuration.present
         ? timerDuration.value
         : this.timerDuration,
+    icon: icon.present ? icon.value : this.icon,
   );
   Habit copyWithCompanion(HabitsCompanion data) {
     return Habit(
@@ -758,6 +790,7 @@ class Habit extends DataClass implements Insertable<Habit> {
       timerDuration: data.timerDuration.present
           ? data.timerDuration.value
           : this.timerDuration,
+      icon: data.icon.present ? data.icon.value : this.icon,
     );
   }
 
@@ -781,7 +814,8 @@ class Habit extends DataClass implements Insertable<Habit> {
           ..write('createdAt: $createdAt, ')
           ..write('isArchived: $isArchived, ')
           ..write('lastDecayAt: $lastDecayAt, ')
-          ..write('timerDuration: $timerDuration')
+          ..write('timerDuration: $timerDuration, ')
+          ..write('icon: $icon')
           ..write(')'))
         .toString();
   }
@@ -806,6 +840,7 @@ class Habit extends DataClass implements Insertable<Habit> {
     isArchived,
     lastDecayAt,
     timerDuration,
+    icon,
   );
   @override
   bool operator ==(Object other) =>
@@ -828,7 +863,8 @@ class Habit extends DataClass implements Insertable<Habit> {
           other.createdAt == this.createdAt &&
           other.isArchived == this.isArchived &&
           other.lastDecayAt == this.lastDecayAt &&
-          other.timerDuration == this.timerDuration);
+          other.timerDuration == this.timerDuration &&
+          other.icon == this.icon);
 }
 
 class HabitsCompanion extends UpdateCompanion<Habit> {
@@ -850,6 +886,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
   final Value<bool> isArchived;
   final Value<DateTime?> lastDecayAt;
   final Value<int?> timerDuration;
+  final Value<String?> icon;
   final Value<int> rowid;
   const HabitsCompanion({
     this.id = const Value.absent(),
@@ -870,6 +907,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     this.isArchived = const Value.absent(),
     this.lastDecayAt = const Value.absent(),
     this.timerDuration = const Value.absent(),
+    this.icon = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   HabitsCompanion.insert({
@@ -891,6 +929,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     this.isArchived = const Value.absent(),
     this.lastDecayAt = const Value.absent(),
     this.timerDuration = const Value.absent(),
+    this.icon = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -914,6 +953,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     Expression<bool>? isArchived,
     Expression<DateTime>? lastDecayAt,
     Expression<int>? timerDuration,
+    Expression<String>? icon,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -935,6 +975,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
       if (isArchived != null) 'is_archived': isArchived,
       if (lastDecayAt != null) 'last_decay_at': lastDecayAt,
       if (timerDuration != null) 'timer_duration': timerDuration,
+      if (icon != null) 'icon': icon,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -958,6 +999,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     Value<bool>? isArchived,
     Value<DateTime?>? lastDecayAt,
     Value<int?>? timerDuration,
+    Value<String?>? icon,
     Value<int>? rowid,
   }) {
     return HabitsCompanion(
@@ -979,6 +1021,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
       isArchived: isArchived ?? this.isArchived,
       lastDecayAt: lastDecayAt ?? this.lastDecayAt,
       timerDuration: timerDuration ?? this.timerDuration,
+      icon: icon ?? this.icon,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1040,6 +1083,9 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     if (timerDuration.present) {
       map['timer_duration'] = Variable<int>(timerDuration.value);
     }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1067,6 +1113,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
           ..write('isArchived: $isArchived, ')
           ..write('lastDecayAt: $lastDecayAt, ')
           ..write('timerDuration: $timerDuration, ')
+          ..write('icon: $icon, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2495,6 +2542,7 @@ typedef $$HabitsTableCreateCompanionBuilder =
       Value<bool> isArchived,
       Value<DateTime?> lastDecayAt,
       Value<int?> timerDuration,
+      Value<String?> icon,
       Value<int> rowid,
     });
 typedef $$HabitsTableUpdateCompanionBuilder =
@@ -2517,6 +2565,7 @@ typedef $$HabitsTableUpdateCompanionBuilder =
       Value<bool> isArchived,
       Value<DateTime?> lastDecayAt,
       Value<int?> timerDuration,
+      Value<String?> icon,
       Value<int> rowid,
     });
 
@@ -2616,6 +2665,11 @@ class $$HabitsTableFilterComposer
 
   ColumnFilters<int> get timerDuration => $composableBuilder(
     column: $table.timerDuration,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2718,6 +2772,11 @@ class $$HabitsTableOrderingComposer
     column: $table.timerDuration,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$HabitsTableAnnotationComposer
@@ -2802,6 +2861,9 @@ class $$HabitsTableAnnotationComposer
     column: $table.timerDuration,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
 }
 
 class $$HabitsTableTableManager
@@ -2850,6 +2912,7 @@ class $$HabitsTableTableManager
                 Value<bool> isArchived = const Value.absent(),
                 Value<DateTime?> lastDecayAt = const Value.absent(),
                 Value<int?> timerDuration = const Value.absent(),
+                Value<String?> icon = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => HabitsCompanion(
                 id: id,
@@ -2870,6 +2933,7 @@ class $$HabitsTableTableManager
                 isArchived: isArchived,
                 lastDecayAt: lastDecayAt,
                 timerDuration: timerDuration,
+                icon: icon,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2892,6 +2956,7 @@ class $$HabitsTableTableManager
                 Value<bool> isArchived = const Value.absent(),
                 Value<DateTime?> lastDecayAt = const Value.absent(),
                 Value<int?> timerDuration = const Value.absent(),
+                Value<String?> icon = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => HabitsCompanion.insert(
                 id: id,
@@ -2912,6 +2977,7 @@ class $$HabitsTableTableManager
                 isArchived: isArchived,
                 lastDecayAt: lastDecayAt,
                 timerDuration: timerDuration,
+                icon: icon,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

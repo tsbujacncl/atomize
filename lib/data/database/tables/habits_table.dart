@@ -56,6 +56,9 @@ class Habits extends Table {
   /// Timer duration in seconds for this habit (null = use default 120s / 2 min)
   IntColumn get timerDuration => integer().nullable()();
 
+  /// Icon identifier for the habit (Material Icons name, e.g. 'fitness_center')
+  TextColumn get icon => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

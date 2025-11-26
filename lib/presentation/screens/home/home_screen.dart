@@ -436,7 +436,7 @@ class _HabitListWithHistory extends ConsumerWidget {
           todayHabit: habit,
           onQuickComplete: habit.isCountType || habit.isCompletedToday
               ? null
-              : () => _quickCompleteHabit(ref, habit.habit.id),
+              : () => _quickCompleteHabit(context, ref, habit.habit),
           onCountIncrement: habit.isCountType && !habit.isCompletedToday
               ? () => _incrementCount(ref, habit.habit.id)
               : null,
@@ -599,10 +599,31 @@ class _HabitListWithHistory extends ConsumerWidget {
     }
   }
 
-  Future<void> _quickCompleteHabit(WidgetRef ref, String habitId) async {
-    await ref.read(completionNotifierProvider.notifier).completeHabit(
-          habitId: habitId,
+  Future<void> _quickCompleteHabit(
+    BuildContext context,
+    WidgetRef ref,
+    Habit habit,
+  ) async {
+    final result = await ref.read(completionNotifierProvider.notifier).completeHabit(
+          habitId: habit.id,
         );
+
+    if (result != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${habit.name} completed'),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () {
+              ref.read(completionNotifierProvider.notifier).undoCompletion(
+                    habitId: habit.id,
+                    completionResult: result,
+                  );
+            },
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _incrementCount(WidgetRef ref, String habitId) async {

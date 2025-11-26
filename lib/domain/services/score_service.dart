@@ -5,6 +5,21 @@ import '../../data/repositories/completion_repository.dart';
 import '../../data/repositories/preferences_repository.dart';
 import '../models/enums.dart';
 
+/// Result of completing a habit, containing info needed for undo.
+class CompletionResult {
+  final String completionId;
+  final double newScore;
+  final double previousScore;
+  final int previousMaturity;
+
+  const CompletionResult({
+    required this.completionId,
+    required this.newScore,
+    required this.previousScore,
+    required this.previousMaturity,
+  });
+}
+
 /// Service for calculating habit scores based on the flame system.
 ///
 /// Score range: 0-100
@@ -67,8 +82,9 @@ class ScoreService {
   /// [source] - How the completion was recorded
   /// [creditPercentage] - Credit percentage (100 same day, 75 yesterday, etc.)
   ///
-  /// Returns the new score after completion.
-  Future<double> applyCompletion({
+  /// Returns a [CompletionResult] with the new score and info needed for undo,
+  /// or null if already completed today.
+  Future<CompletionResult?> applyCompletion({
     required String habitId,
     CompletionSource source = CompletionSource.manual,
     double creditPercentage = 100.0,
@@ -85,25 +101,28 @@ class ScoreService {
       effectiveDate,
     );
     if (alreadyCompleted) {
-      return habit.score; // Already completed, no change
+      return null; // Already completed, no change
     }
 
+    final previousScore = habit.score;
+    final previousMaturity = habit.maturity;
+
     // Calculate gain with credit percentage
-    final baseGain = calculateGain(habit.score);
+    final baseGain = calculateGain(previousScore);
     final adjustedGain = baseGain * (creditPercentage / 100);
-    final newScore = math.min(100.0, habit.score + adjustedGain);
+    final newScore = math.min(100.0, previousScore + adjustedGain);
 
     // Update maturity if score is above 50
-    int newMaturity = habit.maturity;
+    int newMaturity = previousMaturity;
     if (newScore > 50) {
       newMaturity++;
     }
 
     // Record completion
-    await _completionRepository.recordCompletion(
+    final completionId = await _completionRepository.recordCompletion(
       habitId: habitId,
       effectiveDate: effectiveDate,
-      scoreAtCompletion: habit.score,
+      scoreAtCompletion: previousScore,
       source: source,
       creditPercentage: creditPercentage,
     );
@@ -111,7 +130,31 @@ class ScoreService {
     // Update habit score and maturity
     await _habitRepository.updateScore(habitId, newScore, newMaturity);
 
-    return newScore;
+    return CompletionResult(
+      completionId: completionId,
+      newScore: newScore,
+      previousScore: previousScore,
+      previousMaturity: previousMaturity,
+    );
+  }
+
+  /// Undo a completion, restoring the previous score and maturity.
+  ///
+  /// [habitId] - The habit to undo completion for
+  /// [completionId] - The completion record to delete
+  /// [previousScore] - The score to restore
+  /// [previousMaturity] - The maturity to restore
+  Future<void> undoCompletion({
+    required String habitId,
+    required String completionId,
+    required double previousScore,
+    required int previousMaturity,
+  }) async {
+    // Delete the completion record
+    await _completionRepository.deleteCompletion(completionId);
+
+    // Restore the previous score and maturity
+    await _habitRepository.updateScore(habitId, previousScore, previousMaturity);
   }
 
   /// Apply day-end decay to all habits that weren't completed.
