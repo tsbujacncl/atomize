@@ -40,6 +40,7 @@ class SyncService {
   DateTime? _lastSyncAt;
 
   StreamSubscription<bool>? _connectivitySubscription;
+  StreamSubscription<AuthState>? _authSubscription;
 
   SyncService(this._supabase, this._localDb, this._connectivity)
       : _syncQueue = LocalSyncQueue();
@@ -59,6 +60,19 @@ class SyncService {
       (isOnline) {
         if (isOnline) {
           debugPrint('SyncService: Back online, triggering sync');
+          syncAll();
+        }
+      },
+    );
+
+    // Listen for auth state changes (login triggers sync)
+    _authSubscription = _supabase.auth.onAuthStateChange.listen(
+      (authState) {
+        if (authState.event == AuthChangeEvent.signedIn ||
+            authState.event == AuthChangeEvent.userUpdated) {
+          debugPrint('SyncService: Auth state changed (${authState.event}), triggering sync');
+          // Reset last sync time to pull all data for the new user
+          _lastSyncAt = null;
           syncAll();
         }
       },
@@ -427,5 +441,6 @@ class SyncService {
   /// Dispose of resources.
   void dispose() {
     _connectivitySubscription?.cancel();
+    _authSubscription?.cancel();
   }
 }

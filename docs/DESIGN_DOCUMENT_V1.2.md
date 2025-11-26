@@ -211,12 +211,54 @@ When a user first reaches score 100:
 
 ### 2.5 Progress Tracking
 
-**Heatmap/Bar Chart View:**
-- Default: Past 30 days as bar chart (one habit at a time)
-- Zoom out: 30 bars representing weeks/months
-- Similar to Garmin Connect's activity view
-- Bar height represents score on that day
-- Colour matches flame colour at that score
+**Home Screen History Navigation:**
+The home screen features an interactive history bar chart with period selection:
+
+```
+┌──────────────────────────────────────────┐
+│  ☢️ Atomize                    ⚙️        │
+├──────────────────────────────────────────┤
+│                                          │
+│         ◀  Thu, Nov 28  ▶                │  ← Date header with arrows
+│                                          │
+│      [7d]   4w    1y    All              │  ← Period selector
+│                                          │
+│   4 ┤      ▓▓          ██                │  ██ = green (100%)
+│   3 ┤  ▓▓  ▓▓  ██      ██                │  ▓▓ = orange (has heat)
+│   2 ┤  ▓▓  ▓▓  ██  ░░  ██                │  ░░ = blue (low heat)
+│   1 ┤  ▓▓  ▓▓  ██  ░░  ██  ··  ··        │  ·· = future/empty
+│     └────────────────────────────        │
+│      Mon Tue Wed Thu Fri Sat Sun         │
+│                                          │
+├──────────────────────────────────────────┤
+│  To Do                                   │
+│  [habit cards...]                        │
+```
+
+**Period Behaviors:**
+| Period | Bar Count | Each Bar = | Y-Axis | Tap Bar Action |
+|--------|-----------|------------|--------|----------------|
+| 7d | 7 | 1 day | Completions | Navigate to day |
+| 4w | 28 | 1 day | Completions | Navigate to day |
+| 1y | 12 | 1 month | Total completions | Calendar picker |
+| All | N months | 1 month | Total completions | Calendar picker |
+
+**Bar Colors (Based on Avg Heat/Score):**
+- Green: 100% completion (all habits done that day)
+- Orange: Medium avg score
+- Blue: Low avg score
+- Gray: Future days or no data
+
+**Navigation:**
+- Tap bar (7d/4w): Navigate to that day's view
+- Tap date header (1y/All): Open calendar picker
+- Arrow buttons: Navigate day-by-day or month-by-month
+- Tap Atomize logo: Return to today
+- Pull-to-refresh: Return to today
+
+**Past Day Editing:**
+- Last 7 days: Can mark habits done/undone
+- Beyond 7 days: Read-only view
 
 **Simple Stats (Habit Detail Screen):**
 - Current score (0-100%)
@@ -1517,6 +1559,6 @@ Atomize optimises for:
 
 ---
 
-*Document version: 1.2.1*
-*Last updated: November 25, 2025*
+*Document version: 1.2.2*
+*Last updated: November 26, 2025*
 *Author: Tyr + Claude*

@@ -4,8 +4,8 @@
 
 This document tracks the development progress of Atomize V1.2, a complete redesign focusing on anti-addictive, supportive habit tracking with flame-based scoring.
 
-**Last Updated**: 2025-11-25
-**Current Version**: V1.2 Foundation + Phase 2 + Auth (Milestones 0-15)
+**Last Updated**: 2025-11-26
+**Current Version**: V1.2 Foundation + Phase 2 + Auth + History (Milestones 0-17)
 **Branch**: master
 **Design Document**: [DESIGN_DOCUMENT_V1.2.md](./DESIGN_DOCUMENT_V1.2.md)
 
@@ -491,14 +491,14 @@ This document tracks the development progress of Atomize V1.2, a complete redesi
 
 ---
 
-### Milestone 16: Smart Habit Reframing (Breaking Bad Habits)
-**Status**: Planned
+### ✅ Milestone 16: Smart Habit Reframing (Breaking Bad Habits)
+**Status**: Complete
 
 Atomize handles breaking bad habits through positive framing — no separate feature needed. This milestone adds a smart suggestion to help users reframe negative habits.
 
-- [ ] Detect trigger words in habit name field during creation
-- [ ] Show reframing suggestion banner when negative framing detected
-- [ ] Suggest specific positive reframes based on detected topic
+- [x] Detect trigger words in habit name field during creation
+- [x] Show reframing suggestion banner when negative framing detected
+- [x] Suggest specific positive reframes based on detected topic
 
 **Trigger words:**
 - Action: "stop", "quit", "reduce", "less", "avoid", "no more", "cut"
@@ -512,8 +512,47 @@ Atomize handles breaking bad habits through positive framing — no separate fea
 | "stop drinking" | "Alcohol-free day" |
 | "less sugar" | "Sugar-free day" |
 
-**Files to modify:**
+**Files Modified:**
 - `lib/presentation/screens/create_habit/create_habit_screen.dart`
+
+---
+
+### ✅ Milestone 17: History Navigation & Past Day View
+**Status**: Complete
+
+Interactive history bar chart on home screen with period selection and past day navigation.
+
+- [x] Create `home_history_provider.dart` with DayStats/MonthStats models
+- [x] Create `date_habits_provider.dart` for date-specific habit data
+- [x] Create `history_bar_chart.dart` widget with tappable bars
+- [x] Create `period_selector.dart` (7d | 4w | 1y | All)
+- [x] Create `date_nav_header.dart` with arrow navigation
+- [x] Update home screen with history components
+- [x] Create `past_day_screen.dart` for viewing/editing past days
+- [x] Add pull-to-refresh to return to today
+- [x] Make Atomize logo tappable to return to today
+- [x] Add max-width constraint for desktop/tablet screens
+- [x] Fix auth state sync trigger (habits now sync on login)
+
+**Features:**
+- **7d view**: 7 bars (1 per day), tap to navigate
+- **4w view**: 28 bars (scrollable), tap to navigate
+- **1y view**: 12 bars (1 per month), tap date for calendar
+- **All view**: All months since first habit
+- **Bar colors**: Green = 100% done, Orange = medium, Blue = low
+- **Past day editing**: Last 7 days editable, beyond read-only
+
+**Files Created:**
+- `lib/presentation/providers/home_history_provider.dart`
+- `lib/presentation/providers/date_habits_provider.dart`
+- `lib/presentation/widgets/history_bar_chart.dart`
+- `lib/presentation/widgets/period_selector.dart`
+- `lib/presentation/widgets/date_nav_header.dart`
+- `lib/presentation/screens/past_day/past_day_screen.dart`
+
+**Files Modified:**
+- `lib/presentation/screens/home/home_screen.dart` - Major redesign
+- `lib/domain/services/sync_service.dart` - Auth state sync trigger
 
 ---
 
@@ -529,7 +568,8 @@ Atomize handles breaking bad habits through positive framing — no separate fea
 - Notification style system (7 styles)
 - Notification learning (ML-lite)
 - Smart habit templates
-- Smart habit reframing (M16) — help users frame "breaking" habits positively
+- ~~Smart habit reframing (M16)~~ ✅ Done
+- ~~History navigation (M17)~~ ✅ Done
 - History editing with credit percentages
 - Weekly summary system
 - ~~Break mode~~ ✅ Done (M10)
@@ -567,6 +607,11 @@ Atomize handles breaking bad habits through positive framing — no separate fea
 ---
 
 ## Changelog
+
+### 2025-11-26
+- **Milestone 17 Complete**: History Navigation & Past Day View - Interactive bar chart on home screen with 7d/4w/1y/All period selector, past day viewing and editing, pull-to-refresh, logo tap to return to today
+- **Auth Sync Fix**: Habits now automatically sync when user logs in (auth state change triggers sync)
+- **Responsive Layout**: Added max-width constraints for better desktop/tablet display
 
 ### 2025-11-25
 - **Milestone 15 Complete**: Account & Authentication - Email/Apple/Google sign-in options, account screen with sign-up/sign-in toggle, password reset, Google OAuth configured
