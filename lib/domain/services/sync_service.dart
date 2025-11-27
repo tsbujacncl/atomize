@@ -36,6 +36,12 @@ class SyncService {
 
   final _uuid = const Uuid();
 
+  final StreamController<SyncResult> _syncCompletedController =
+      StreamController<SyncResult>.broadcast();
+
+  /// Stream that emits when sync completes (for UI refresh).
+  Stream<SyncResult> get onSyncCompleted => _syncCompletedController.stream;
+
   bool _isSyncing = false;
   DateTime? _lastSyncAt;
 
@@ -69,7 +75,8 @@ class SyncService {
     _authSubscription = _supabase.auth.onAuthStateChange.listen(
       (authState) {
         if (authState.event == AuthChangeEvent.signedIn ||
-            authState.event == AuthChangeEvent.userUpdated) {
+            authState.event == AuthChangeEvent.userUpdated ||
+            authState.event == AuthChangeEvent.initialSession) {
           debugPrint('SyncService: Auth state changed (${authState.event}), triggering sync');
           // Reset last sync time to pull all data for the new user
           _lastSyncAt = null;
@@ -122,11 +129,16 @@ class SyncService {
       _lastSyncAt = DateTime.now();
       debugPrint('SyncService: Sync completed. $itemsSynced items synced.');
 
-      return SyncResult(
+      final result = SyncResult(
         success: true,
         message: 'Sync completed',
         itemsSynced: itemsSynced,
       );
+
+      // Notify listeners that sync completed (for UI refresh)
+      _syncCompletedController.add(result);
+
+      return result;
     } catch (e) {
       debugPrint('SyncService: Sync error: $e');
       return SyncResult(success: false, message: e.toString());
@@ -445,5 +457,6 @@ class SyncService {
   void dispose() {
     _connectivitySubscription?.cancel();
     _authSubscription?.cancel();
+    _syncCompletedController.close();
   }
 }
