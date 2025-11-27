@@ -29,6 +29,20 @@ enum HistoryPeriod {
         return 0; // Dynamic based on data
     }
   }
+
+  /// Display label for stats boxes (e.g., "(7 days)").
+  String get displayLabel {
+    switch (this) {
+      case sevenDays:
+        return '(7 days)';
+      case fourWeeks:
+        return '(4 weeks)';
+      case oneYear:
+        return '(1 year)';
+      case all:
+        return '(All time)';
+    }
+  }
 }
 
 /// Stats for a single day in the history view.
@@ -65,13 +79,20 @@ class DayStats {
 class MonthStats {
   final DateTime month; // First day of the month
   final int totalCompletions;
+  final int totalPossibleCompletions; // Total habits × days tracked
   final double avgScore;
 
   const MonthStats({
     required this.month,
     required this.totalCompletions,
+    required this.totalPossibleCompletions,
     required this.avgScore,
   });
+
+  /// Average completion rate for the month (0.0 to 1.0).
+  double get completionRate => totalPossibleCompletions > 0
+      ? (totalCompletions / totalPossibleCompletions).clamp(0.0, 1.0)
+      : 0.0;
 
   /// Month label (e.g., "Nov").
   String get label {
@@ -96,20 +117,32 @@ class HomeHistoryData {
   final List<DayStats> dailyStats; // For 7d/4w
   final List<MonthStats> monthlyStats; // For 1y/All
   final int maxValue; // For Y-axis scaling
-  final double currentAvgScore; // Current average score across all habits
-  final int avgScoreChange; // Change vs period start (integer)
+
+  // Period aggregate stats (for period stats boxes)
+  final double periodCompletionPercentage; // 0-100
+  final double periodAvgScore; // Average score for the period
+
+  // Today stats (for today stats boxes)
+  final double todayAvgScore; // Today's average score
+  final int todayScoreChange; // Change vs period start
 
   const HomeHistoryData({
     required this.period,
     this.dailyStats = const [],
     this.monthlyStats = const [],
     required this.maxValue,
-    this.currentAvgScore = 0,
-    this.avgScoreChange = 0,
+    this.periodCompletionPercentage = 0,
+    this.periodAvgScore = 0,
+    this.todayAvgScore = 0,
+    this.todayScoreChange = 0,
   });
 
   /// Get the appropriate stats list based on period.
   bool get isDaily => period.isDaily;
+
+  // Legacy getters for backwards compatibility
+  double get currentAvgScore => todayAvgScore;
+  int get avgScoreChange => todayScoreChange;
 }
 
 /// Provider for home screen history data.
@@ -177,10 +210,10 @@ final homeHistoryProvider = FutureProvider.family<HomeHistoryData,
       ));
     }
 
-    // Calculate current average score across all habits
-    double currentAvgScore = 0;
+    // Calculate today's average score across all habits
+    double todayAvgScore = 0;
     if (habits.isNotEmpty) {
-      currentAvgScore = habits.map((h) => h.score).reduce((a, b) => a + b) / habits.length;
+      todayAvgScore = habits.map((h) => h.score).reduce((a, b) => a + b) / habits.length;
     }
 
     // Calculate score at period start for comparison
@@ -188,14 +221,36 @@ final homeHistoryProvider = FutureProvider.family<HomeHistoryData,
     if (dailyStats.isNotEmpty && dailyStats.first.avgScore > 0) {
       periodStartScore = dailyStats.first.avgScore;
     }
-    final avgScoreChange = (currentAvgScore - periodStartScore).round();
+    final todayScoreChange = (todayAvgScore - periodStartScore).round();
+
+    // Calculate period aggregate stats
+    int totalCompletions = 0;
+    int totalPossible = 0;
+    double totalScore = 0;
+    int scoreCount = 0;
+    for (final stat in dailyStats) {
+      if (!stat.isFuture) {
+        totalCompletions += stat.completedCount;
+        totalPossible += stat.totalHabits;
+        if (stat.avgScore > 0) {
+          totalScore += stat.avgScore;
+          scoreCount++;
+        }
+      }
+    }
+    final periodCompletionPercentage = totalPossible > 0
+        ? (totalCompletions / totalPossible * 100)
+        : 0.0;
+    final periodAvgScore = scoreCount > 0 ? totalScore / scoreCount : 0.0;
 
     return HomeHistoryData(
       period: params.period,
       dailyStats: dailyStats,
       maxValue: maxCompletions,
-      currentAvgScore: currentAvgScore,
-      avgScoreChange: avgScoreChange,
+      periodCompletionPercentage: periodCompletionPercentage,
+      periodAvgScore: periodAvgScore,
+      todayAvgScore: todayAvgScore,
+      todayScoreChange: todayScoreChange,
     );
   } else {
     // Monthly stats for 1y or All
@@ -229,10 +284,17 @@ final homeHistoryProvider = FutureProvider.family<HomeHistoryData,
       final monthEnd = DateTime(currentMonth.year, currentMonth.month + 1, 0);
       final isFuture = currentMonth.isAfter(endMonth);
 
+      // Calculate days in month (up to today if current month)
+      final daysInMonth = monthEnd.day;
+      final isCurrentMonth = currentMonth.year == today.year && currentMonth.month == today.month;
+      final daysToCount = isCurrentMonth ? today.day : daysInMonth;
+      final totalPossibleCompletions = daysToCount * totalHabits;
+
       if (isFuture) {
         monthlyStats.add(MonthStats(
           month: currentMonth,
           totalCompletions: 0,
+          totalPossibleCompletions: totalPossibleCompletions,
           avgScore: 0,
         ));
       } else {
@@ -265,6 +327,7 @@ final homeHistoryProvider = FutureProvider.family<HomeHistoryData,
         monthlyStats.add(MonthStats(
           month: currentMonth,
           totalCompletions: totalCompletions,
+          totalPossibleCompletions: totalPossibleCompletions,
           avgScore: avgScore,
         ));
       }
@@ -273,10 +336,10 @@ final homeHistoryProvider = FutureProvider.family<HomeHistoryData,
       currentMonth = DateTime(currentMonth.year, currentMonth.month + 1, 1);
     }
 
-    // Calculate current average score across all habits
-    double currentAvgScore = 0;
+    // Calculate today's average score across all habits
+    double todayAvgScore = 0;
     if (habits.isNotEmpty) {
-      currentAvgScore = habits.map((h) => h.score).reduce((a, b) => a + b) / habits.length;
+      todayAvgScore = habits.map((h) => h.score).reduce((a, b) => a + b) / habits.length;
     }
 
     // Calculate score at period start for comparison
@@ -284,14 +347,36 @@ final homeHistoryProvider = FutureProvider.family<HomeHistoryData,
     if (monthlyStats.isNotEmpty && monthlyStats.first.avgScore > 0) {
       periodStartScore = monthlyStats.first.avgScore;
     }
-    final avgScoreChange = (currentAvgScore - periodStartScore).round();
+    final todayScoreChange = (todayAvgScore - periodStartScore).round();
+
+    // Calculate period aggregate stats
+    int totalCompletions = 0;
+    int totalPossible = 0;
+    double totalScore = 0;
+    int scoreCount = 0;
+    for (final stat in monthlyStats) {
+      if (!stat.isFuture) {
+        totalCompletions += stat.totalCompletions;
+        totalPossible += stat.totalPossibleCompletions;
+        if (stat.avgScore > 0) {
+          totalScore += stat.avgScore;
+          scoreCount++;
+        }
+      }
+    }
+    final periodCompletionPercentage = totalPossible > 0
+        ? (totalCompletions / totalPossible * 100)
+        : 0.0;
+    final periodAvgScore = scoreCount > 0 ? totalScore / scoreCount : 0.0;
 
     return HomeHistoryData(
       period: params.period,
       monthlyStats: monthlyStats,
       maxValue: maxCompletions,
-      currentAvgScore: currentAvgScore,
-      avgScoreChange: avgScoreChange,
+      periodCompletionPercentage: periodCompletionPercentage,
+      periodAvgScore: periodAvgScore,
+      todayAvgScore: todayAvgScore,
+      todayScoreChange: todayScoreChange,
     );
   }
 });
