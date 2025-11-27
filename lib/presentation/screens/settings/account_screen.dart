@@ -5,6 +5,7 @@ import 'package:gap/gap.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/sync_provider.dart';
 
 /// Screen for managing user account - sign in, link account, sign out.
 class AccountScreen extends ConsumerStatefulWidget {
@@ -343,7 +344,14 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
 
     try {
       final authService = ref.read(authServiceProvider);
+
+      // Store anonymous user ID before sign-in for migration
+      await authService?.storeAnonymousUserId();
+
       await authService?.signInWithApple();
+
+      // Migrate anonymous data to the new account
+      await _migrateAnonymousData();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -372,7 +380,14 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
 
     try {
       final authService = ref.read(authServiceProvider);
+
+      // Store anonymous user ID before sign-in for migration
+      await authService?.storeAnonymousUserId();
+
       await authService?.signInWithGoogle();
+
+      // Migrate anonymous data to the new account
+      await _migrateAnonymousData();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -406,6 +421,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       final email = _emailController.text.trim();
       final password = _passwordController.text;
 
+      // Store anonymous user ID before sign-in for migration
+      await authService?.storeAnonymousUserId();
+
       if (_isSignUp) {
         // If anonymous, link the account instead of creating new
         if (authService?.isAnonymous ?? false) {
@@ -436,6 +454,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         }
       } else {
         await authService?.signInWithEmail(email, password);
+
+        // Migrate anonymous data to the new account
+        await _migrateAnonymousData();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -571,6 +592,33 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     }
     // Remove "Exception: " prefix if present
     return error.replaceFirst('Exception: ', '');
+  }
+
+  /// Migrate anonymous user data to the newly signed-in account.
+  Future<void> _migrateAnonymousData() async {
+    final authService = ref.read(authServiceProvider);
+    final syncService = ref.read(syncServiceProvider);
+
+    if (authService == null || syncService == null) return;
+
+    // Get stored anonymous user ID
+    final anonymousUserId = await authService.getStoredAnonymousUserId();
+    if (anonymousUserId == null) return;
+
+    // Migrate data
+    final migratedCount = await syncService.migrateAnonymousData(anonymousUserId);
+
+    // Clear stored ID
+    await authService.clearStoredAnonymousUserId();
+
+    if (mounted && migratedCount > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Migrated $migratedCount items from your previous session'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 }
 

@@ -453,6 +453,63 @@ class SyncService {
     );
   }
 
+  /// Migrate data from anonymous user to authenticated user.
+  ///
+  /// Called after a user signs in with email/Google/Apple to transfer
+  /// any habits and completions created while anonymous.
+  Future<int> migrateAnonymousData(String anonymousUserId) async {
+    if (_userId == null) {
+      debugPrint('SyncService: Cannot migrate - not authenticated');
+      return 0;
+    }
+
+    if (anonymousUserId == _userId) {
+      debugPrint('SyncService: Same user ID, no migration needed');
+      return 0;
+    }
+
+    if (!_connectivity.isOnline) {
+      debugPrint('SyncService: Cannot migrate - offline');
+      return 0;
+    }
+
+    debugPrint('SyncService: Migrating data from $anonymousUserId to $_userId');
+    int migratedCount = 0;
+
+    try {
+      // Migrate habits
+      final habitsResult = await _supabase
+          .from('habits')
+          .update({'user_id': _userId})
+          .eq('user_id', anonymousUserId)
+          .select();
+
+      migratedCount += (habitsResult as List).length;
+      debugPrint('SyncService: Migrated ${habitsResult.length} habits');
+
+      // Migrate completions
+      final completionsResult = await _supabase
+          .from('habit_completions')
+          .update({'user_id': _userId})
+          .eq('user_id', anonymousUserId)
+          .select();
+
+      migratedCount += (completionsResult as List).length;
+      debugPrint('SyncService: Migrated ${completionsResult.length} completions');
+
+      // After migration, sync to pull the migrated data locally
+      if (migratedCount > 0) {
+        await syncAll();
+      }
+
+      debugPrint('SyncService: Migration complete. $migratedCount items migrated.');
+      return migratedCount;
+    } catch (e) {
+      debugPrint('SyncService: Migration error: $e');
+      return 0;
+    }
+  }
+
   /// Dispose of resources.
   void dispose() {
     _connectivitySubscription?.cancel();

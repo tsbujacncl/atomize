@@ -17,9 +17,31 @@ class AuthService {
   final FlutterSecureStorage _secureStorage;
 
   static const _deviceIdKey = 'atomize_device_id';
+  static const _anonymousUserIdKey = 'atomize_anonymous_user_id';
 
   AuthService(this._client)
       : _secureStorage = const FlutterSecureStorage();
+
+  /// Store the current anonymous user ID before signing in.
+  /// This allows migrating data after sign-in.
+  Future<void> storeAnonymousUserId() async {
+    final user = currentUser;
+    if (user != null && isAnonymous) {
+      await _secureStorage.write(key: _anonymousUserIdKey, value: user.id);
+      debugPrint('AuthService: Stored anonymous user ID: ${user.id}');
+    }
+  }
+
+  /// Get the stored anonymous user ID (for migration after sign-in).
+  Future<String?> getStoredAnonymousUserId() async {
+    return await _secureStorage.read(key: _anonymousUserIdKey);
+  }
+
+  /// Clear the stored anonymous user ID (after migration).
+  Future<void> clearStoredAnonymousUserId() async {
+    await _secureStorage.delete(key: _anonymousUserIdKey);
+    debugPrint('AuthService: Cleared stored anonymous user ID');
+  }
 
   /// Current authenticated user (nullable).
   User? get currentUser => _client.auth.currentUser;
