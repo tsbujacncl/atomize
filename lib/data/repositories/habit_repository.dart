@@ -138,8 +138,19 @@ class HabitRepository {
   }
 
   /// Update a habit's score and maturity
-  Future<void> updateScore(String id, double newScore, int newMaturity) =>
-      _dao.updateScore(id, newScore, newMaturity);
+  Future<void> updateScore(String id, double newScore, int newMaturity) async {
+    await _dao.updateScore(id, newScore, newMaturity);
+
+    // Queue for sync
+    final habit = await _dao.getById(id);
+    if (habit != null) {
+      _syncService?.queueHabitSync(
+        id,
+        SyncOperation.update,
+        data: _habitToSyncData(habit),
+      );
+    }
+  }
 
   /// Update deep purpose fields
   Future<void> updateDeepPurpose({
@@ -156,6 +167,16 @@ class HabitRepository {
         outcomeWhy: Value(outcomeWhy),
       ),
     );
+
+    // Queue for sync
+    final habit = await _dao.getById(id);
+    if (habit != null) {
+      _syncService?.queueHabitSync(
+        id,
+        SyncOperation.update,
+        data: _habitToSyncData(habit),
+      );
+    }
   }
 
   /// Archive a habit (soft delete)

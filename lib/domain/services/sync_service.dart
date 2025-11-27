@@ -360,6 +360,7 @@ class SyncService {
       'is_archived': habit.isArchived,
       'last_decay_at': habit.lastDecayAt?.toIso8601String(),
       'timer_duration': habit.timerDuration,
+      'icon': habit.icon,
     });
   }
 
@@ -396,6 +397,7 @@ class SyncService {
         afterHabitId: Value(data['after_habit_id']),
         isArchived: Value(data['is_archived'] ?? false),
         timerDuration: Value(data['timer_duration']),
+        icon: Value(data['icon']),
       ),
     );
   }
@@ -419,6 +421,7 @@ class SyncService {
         afterHabitId: Value(data['after_habit_id']),
         isArchived: Value(data['is_archived'] ?? false),
         timerDuration: Value(data['timer_duration']),
+        icon: Value(data['icon']),
       ),
     );
   }

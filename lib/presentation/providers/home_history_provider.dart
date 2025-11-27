@@ -96,12 +96,16 @@ class HomeHistoryData {
   final List<DayStats> dailyStats; // For 7d/4w
   final List<MonthStats> monthlyStats; // For 1y/All
   final int maxValue; // For Y-axis scaling
+  final double currentAvgScore; // Current average score across all habits
+  final int avgScoreChange; // Change vs period start (integer)
 
   const HomeHistoryData({
     required this.period,
     this.dailyStats = const [],
     this.monthlyStats = const [],
     required this.maxValue,
+    this.currentAvgScore = 0,
+    this.avgScoreChange = 0,
   });
 
   /// Get the appropriate stats list based on period.
@@ -173,10 +177,25 @@ final homeHistoryProvider = FutureProvider.family<HomeHistoryData,
       ));
     }
 
+    // Calculate current average score across all habits
+    double currentAvgScore = 0;
+    if (habits.isNotEmpty) {
+      currentAvgScore = habits.map((h) => h.score).reduce((a, b) => a + b) / habits.length;
+    }
+
+    // Calculate score at period start for comparison
+    double periodStartScore = 0;
+    if (dailyStats.isNotEmpty && dailyStats.first.avgScore > 0) {
+      periodStartScore = dailyStats.first.avgScore;
+    }
+    final avgScoreChange = (currentAvgScore - periodStartScore).round();
+
     return HomeHistoryData(
       period: params.period,
       dailyStats: dailyStats,
       maxValue: maxCompletions,
+      currentAvgScore: currentAvgScore,
+      avgScoreChange: avgScoreChange,
     );
   } else {
     // Monthly stats for 1y or All
@@ -254,10 +273,25 @@ final homeHistoryProvider = FutureProvider.family<HomeHistoryData,
       currentMonth = DateTime(currentMonth.year, currentMonth.month + 1, 1);
     }
 
+    // Calculate current average score across all habits
+    double currentAvgScore = 0;
+    if (habits.isNotEmpty) {
+      currentAvgScore = habits.map((h) => h.score).reduce((a, b) => a + b) / habits.length;
+    }
+
+    // Calculate score at period start for comparison
+    double periodStartScore = 0;
+    if (monthlyStats.isNotEmpty && monthlyStats.first.avgScore > 0) {
+      periodStartScore = monthlyStats.first.avgScore;
+    }
+    final avgScoreChange = (currentAvgScore - periodStartScore).round();
+
     return HomeHistoryData(
       period: params.period,
       monthlyStats: monthlyStats,
       maxValue: maxCompletions,
+      currentAvgScore: currentAvgScore,
+      avgScoreChange: avgScoreChange,
     );
   }
 });

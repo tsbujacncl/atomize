@@ -66,82 +66,90 @@ class PastDayScreen extends ConsumerWidget {
           final completed = habits.where((h) => h.isCompleted).toList();
           final incomplete = habits.where((h) => !h.isCompleted).toList();
 
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-              // Summary card
-              _SummaryCard(
-                completed: completed.length,
-                total: habits.length,
-              ),
-              const Gap(24),
-
-              // Editable notice
-              if (isEditable) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.edit_outlined,
-                        size: 20,
-                        color: theme.colorScheme.onPrimaryContainer,
-                      ),
-                      const Gap(8),
-                      Expanded(
-                        child: Text(
-                          'You can still edit completions for this day',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer,
-                          ),
+          return ListView(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Summary card
+                        _SummaryCard(
+                          completed: completed.length,
+                          total: habits.length,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Gap(16),
-              ],
+                        const Gap(24),
 
-              // Completed habits
-              if (completed.isNotEmpty) ...[
-                Text(
-                  'Completed (${completed.length})',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: theme.textTheme.bodySmall?.color,
-                  ),
-                ),
-                const Gap(8),
-                ...completed.map((h) => _PastDayHabitCard(
-                  dateHabit: h,
-                  isEditable: isEditable,
-                )),
-                const Gap(16),
-              ],
+                        // Editable notice
+                        if (isEditable) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.edit_outlined,
+                                  size: 20,
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                ),
+                                const Gap(8),
+                                Expanded(
+                                  child: Text(
+                                    'You can still edit completions for this day',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Gap(16),
+                        ],
 
-              // Incomplete habits
-              if (incomplete.isNotEmpty) ...[
-                Text(
-                  'Missed (${incomplete.length})',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: theme.textTheme.bodySmall?.color,
+                        // Completed habits
+                        if (completed.isNotEmpty) ...[
+                          Text(
+                            'Completed (${completed.length})',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.textTheme.bodySmall?.color,
+                            ),
+                          ),
+                          const Gap(8),
+                          ...completed.map((h) => _PastDayHabitCard(
+                            dateHabit: h,
+                            isEditable: isEditable,
+                          )),
+                          const Gap(16),
+                        ],
+
+                        // Incomplete habits
+                        if (incomplete.isNotEmpty) ...[
+                          Text(
+                            'Missed (${incomplete.length})',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.textTheme.bodySmall?.color,
+                            ),
+                          ),
+                          const Gap(8),
+                          ...incomplete.map((h) => _PastDayHabitCard(
+                            dateHabit: h,
+                            isEditable: isEditable,
+                          )),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
-                const Gap(8),
-                ...incomplete.map((h) => _PastDayHabitCard(
-                  dateHabit: h,
-                  isEditable: isEditable,
-                )),
-              ],
-                ],
               ),
-            ),
+            ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),

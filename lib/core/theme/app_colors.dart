@@ -35,14 +35,20 @@ abstract final class AppColors {
 
   // ============== Light Theme ==============
 
-  /// Light theme background
-  static const Color lightBackground = Color(0xFFFAFAFA);
+  /// Light theme background - warm cream
+  static const Color lightBackground = Color(0xFFFFF9F5);
 
-  /// Light theme surface
-  static const Color lightSurface = Color(0xFFFFFFFF);
+  /// Light theme surface - warm white
+  static const Color lightSurface = Color(0xFFFFFCFA);
 
-  /// Light theme card
+  /// Light theme card - warm white
   static const Color lightCard = Color(0xFFFFFFFF);
+
+  /// Completed card background - subtle green tint
+  static const Color completedCardBackground = Color(0xFFF0FDF4);
+
+  /// Completed card border - green
+  static const Color completedCardBorder = Color(0xFF22C55E);
 
   /// Light theme primary text
   static const Color lightTextPrimary = Color(0xFF1F2937);

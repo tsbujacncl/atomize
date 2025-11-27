@@ -7,7 +7,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/database/app_database.dart';
 import '../../../domain/models/enums.dart';
 import '../../providers/habit_provider.dart';
-import '../../widgets/duration_picker.dart';
 import '../../widgets/icon_picker.dart';
 
 /// Screen for editing an existing habit.
@@ -28,24 +27,28 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
   final _nameController = TextEditingController();
   final _locationController = TextEditingController();
   final _whyController = TextEditingController();
-  final _countTargetController = TextEditingController();
   final _weeklyTargetController = TextEditingController();
+  final _timerMinutesController = TextEditingController(text: '2');
+  final _timerSecondsController = TextEditingController(text: '0');
 
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
   HabitType _habitType = HabitType.binary;
-  int? _timerDuration; // null = use default (2 min)
   String? _afterHabitId; // habit stacking
   String? _selectedIcon;
   bool _isSaving = false;
   bool _isInitialized = false;
+
+  // Max width for content on wide screens
+  static const double _maxContentWidth = 500;
 
   @override
   void dispose() {
     _nameController.dispose();
     _locationController.dispose();
     _whyController.dispose();
-    _countTargetController.dispose();
     _weeklyTargetController.dispose();
+    _timerMinutesController.dispose();
+    _timerSecondsController.dispose();
     super.dispose();
   }
 
@@ -56,15 +59,18 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
     _nameController.text = habit.name;
     _locationController.text = habit.location ?? '';
     _whyController.text = habit.quickWhy ?? '';
-    _timerDuration = habit.timerDuration;
     _afterHabitId = habit.afterHabitId;
     _selectedIcon = habit.icon;
     _habitType = HabitType.values.firstWhere(
       (t) => t.name == habit.type,
       orElse: () => HabitType.binary,
     );
-    _countTargetController.text = habit.countTarget?.toString() ?? '8';
     _weeklyTargetController.text = habit.weeklyTarget?.toString() ?? '3';
+
+    // Parse timer duration (seconds) into minutes and seconds
+    final duration = habit.timerDuration ?? 120; // Default 2 minutes
+    _timerMinutesController.text = (duration ~/ 60).toString();
+    _timerSecondsController.text = (duration % 60).toString();
 
     // Parse scheduled time
     try {
@@ -105,157 +111,185 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
             child: Form(
               key: _formKey,
               child: ListView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.symmetric(vertical: 24),
                 children: [
-                  // What - Habit name (required)
-                  _buildSectionLabel(context, 'What', isRequired: true),
-                  const Gap(8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      IconPickerButton(
-                        iconId: _selectedIcon,
-                        onChanged: (iconId) {
-                          setState(() => _selectedIcon = iconId);
-                        },
-                      ),
-                      const Gap(12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _nameController,
-                          decoration: const InputDecoration(
-                            hintText: 'e.g., Do yoga, Read, Meditate',
-                          ),
-                          textCapitalization: TextCapitalization.sentences,
-                          textInputAction: TextInputAction.next,
-                          validator: _validateName,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: _maxContentWidth),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // What - Habit name with icon picker on left
+                            _buildSectionLabel(context, 'What', isRequired: true),
+                            const Gap(8),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                IconPickerButton(
+                                  iconId: _selectedIcon,
+                                  onChanged: (iconId) {
+                                    setState(() => _selectedIcon = iconId);
+                                  },
+                                ),
+                                const Gap(12),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _nameController,
+                                    decoration: const InputDecoration(
+                                      hintText: 'e.g., Do yoga, Read, Meditate',
+                                    ),
+                                    textCapitalization: TextCapitalization.sentences,
+                                    textInputAction: TextInputAction.next,
+                                    validator: _validateName,
+                                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            // Weekly target (only for weekly type habits)
+                            if (_habitType == HabitType.weekly) ...[
+                              const Gap(24),
+                              _buildSectionLabel(context, 'Weekly Target', isRequired: true),
+                              const Gap(8),
+                              TextFormField(
+                                controller: _weeklyTargetController,
+                                decoration: const InputDecoration(
+                                  hintText: 'e.g., 3',
+                                  suffixText: 'times per week',
+                                ),
+                                keyboardType: TextInputType.number,
+                                validator: _validateWeeklyTarget,
+                                autovalidateMode: AutovalidateMode.onUserInteraction,
+                              ),
+                            ],
+                            const Gap(24),
+
+                            // When - Time picker (required)
+                            _buildSectionLabel(context, 'When', isRequired: true),
+                            const Gap(8),
+                            _TimePicker(
+                              selectedTime: _selectedTime,
+                              onTimeChanged: (time) {
+                                setState(() => _selectedTime = time);
+                              },
+                            ),
+                            const Gap(24),
+
+                            // Where - Location (optional)
+                            _buildSectionLabel(context, 'Where'),
+                            const Gap(8),
+                            TextFormField(
+                              controller: _locationController,
+                              decoration: const InputDecoration(
+                                hintText: 'e.g., Living room, Office, Kitchen',
+                              ),
+                              textCapitalization: TextCapitalization.sentences,
+                              textInputAction: TextInputAction.next,
+                            ),
+                            const Gap(24),
+
+                            // Why - Purpose (optional)
+                            _buildSectionLabel(context, 'Why'),
+                            const Gap(8),
+                            TextFormField(
+                              controller: _whyController,
+                              decoration: const InputDecoration(
+                                hintText: 'Why does this matter to you?',
+                              ),
+                              textCapitalization: TextCapitalization.sentences,
+                              textInputAction: TextInputAction.done,
+                              maxLines: 2,
+                              onFieldSubmitted: (_) => _saveHabit(),
+                            ),
+                            const Gap(24),
+
+                            // Timer duration (minutes + seconds input)
+                            _buildSectionLabel(context, 'Timer Duration'),
+                            const Gap(8),
+                            Row(
+                              children: [
+                                SizedBox(
+                                  width: 80,
+                                  child: TextFormField(
+                                    controller: _timerMinutesController,
+                                    decoration: const InputDecoration(
+                                      hintText: '2',
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                const Gap(8),
+                                Text(
+                                  'min',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                                const Gap(16),
+                                SizedBox(
+                                  width: 80,
+                                  child: TextFormField(
+                                    controller: _timerSecondsController,
+                                    decoration: const InputDecoration(
+                                      hintText: '0',
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                const Gap(8),
+                                Text(
+                                  'sec',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
+                            const Gap(8),
+                            Text(
+                              'How long to focus when completing this habit.',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const Gap(24),
+
+                            // Habit Stacking (optional)
+                            _buildSectionLabel(context, 'Build a Routine'),
+                            const Gap(4),
+                            Text(
+                              'Do this habit right after another one.',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const Gap(8),
+                            _HabitStackSelector(
+                              selectedHabitId: _afterHabitId,
+                              excludeHabitId: widget.habitId,
+                              onHabitChanged: (habitId) {
+                                setState(() => _afterHabitId = habitId);
+                              },
+                            ),
+                            const Gap(40),
+
+                            // Save button
+                            FilledButton(
+                              onPressed: _isSaving ? null : _saveHabit,
+                              child: _isSaving
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text('Save Changes'),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-
-                  // Count target (only for count type habits)
-                  if (_habitType == HabitType.count) ...[
-                    const Gap(24),
-                    _buildSectionLabel(context, 'Daily Target', isRequired: true),
-                    const Gap(8),
-                    TextFormField(
-                      controller: _countTargetController,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g., 8',
-                        suffixText: 'times per day',
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: _validateCountTarget,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-                  ],
-
-                  // Weekly target (only for weekly type habits)
-                  if (_habitType == HabitType.weekly) ...[
-                    const Gap(24),
-                    _buildSectionLabel(context, 'Weekly Target', isRequired: true),
-                    const Gap(8),
-                    TextFormField(
-                      controller: _weeklyTargetController,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g., 3',
-                        suffixText: 'times per week',
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: _validateWeeklyTarget,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                    ),
-                  ],
-                  const Gap(24),
-
-                  // When - Time picker (required)
-                  _buildSectionLabel(context, 'When', isRequired: true),
-                  const Gap(8),
-                  _TimePicker(
-                    selectedTime: _selectedTime,
-                    onTimeChanged: (time) {
-                      setState(() => _selectedTime = time);
-                    },
-                  ),
-                  const Gap(24),
-
-                  // Where - Location (optional)
-                  _buildSectionLabel(context, 'Where'),
-                  const Gap(8),
-                  TextFormField(
-                    controller: _locationController,
-                    decoration: const InputDecoration(
-                      hintText: 'e.g., Living room, Office, Kitchen',
-                    ),
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.next,
-                  ),
-                  const Gap(24),
-
-                  // Why - Purpose (optional)
-                  _buildSectionLabel(context, 'Why'),
-                  const Gap(8),
-                  TextFormField(
-                    controller: _whyController,
-                    decoration: const InputDecoration(
-                      hintText: 'Why does this matter to you?',
-                    ),
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.done,
-                    maxLines: 2,
-                    onFieldSubmitted: (_) => _saveHabit(),
-                  ),
-                  const Gap(24),
-
-                  // Timer duration (optional)
-                  _buildSectionLabel(context, 'Timer Duration'),
-                  const Gap(8),
-                  DurationPicker(
-                    selectedDuration: _timerDuration,
-                    onDurationChanged: (duration) {
-                      setState(() => _timerDuration = duration);
-                    },
-                    showDefaultOption: true,
-                  ),
-                  const Gap(8),
-                  Text(
-                    'How long to focus when completing this habit.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const Gap(24),
-
-                  // Habit Stacking (optional)
-                  _buildSectionLabel(context, 'Build a Routine'),
-                  const Gap(4),
-                  Text(
-                    'Do this habit right after another one.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const Gap(8),
-                  _HabitStackSelector(
-                    selectedHabitId: _afterHabitId,
-                    excludeHabitId: widget.habitId,
-                    onHabitChanged: (habitId) {
-                      setState(() => _afterHabitId = habitId);
-                    },
-                  ),
-                  const Gap(40),
-
-                  // Save button
-                  FilledButton(
-                    onPressed: _isSaving ? null : _saveHabit,
-                    child: _isSaving
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Save Changes'),
                   ),
                 ],
               ),
@@ -311,23 +345,6 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
     return null;
   }
 
-  String? _validateCountTarget(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Please enter a target';
-    }
-    final parsed = int.tryParse(value.trim());
-    if (parsed == null) {
-      return 'Please enter a valid number';
-    }
-    if (parsed < 1) {
-      return 'Target must be at least 1';
-    }
-    if (parsed > 100) {
-      return 'Target must be 100 or less';
-    }
-    return null;
-  }
-
   String? _validateWeeklyTarget(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Please enter a weekly target';
@@ -357,6 +374,11 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
       final timeString =
           '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}';
 
+      // Calculate timer duration in seconds from min + sec inputs
+      final minutes = int.tryParse(_timerMinutesController.text.trim()) ?? 2;
+      final seconds = int.tryParse(_timerSecondsController.text.trim()) ?? 0;
+      final timerDuration = (minutes * 60) + seconds;
+
       await ref.read(habitNotifierProvider.notifier).updateHabit(
             id: widget.habitId,
             name: _nameController.text.trim(),
@@ -367,12 +389,10 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
             quickWhy: _whyController.text.trim().isEmpty
                 ? null
                 : _whyController.text.trim(),
-            timerDuration: _timerDuration,
+            timerDuration: timerDuration > 0 ? timerDuration : null,
             updateTimerDuration: true,
-            countTarget: _habitType == HabitType.count
-                ? int.tryParse(_countTargetController.text.trim())
-                : null,
-            updateCountTarget: _habitType == HabitType.count,
+            countTarget: null, // Count type removed
+            updateCountTarget: false,
             weeklyTarget: _habitType == HabitType.weekly
                 ? int.tryParse(_weeklyTargetController.text.trim())
                 : null,

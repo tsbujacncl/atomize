@@ -42,85 +42,82 @@ class HabitCard extends StatelessWidget {
     final isCompleted = todayHabit.isCompletedToday;
     final score = habit.score;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => HabitDetailScreen(habitId: habit.id),
-            ),
-          );
-        },
-        onLongPress: onLongPress,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              // Habit icon button (left)
-              _HabitIconButton(
-                todayHabit: todayHabit,
-                onTap: () => _openTimer(context, habit),
-                onLongPress: () => _showQuickCompleteDialog(context),
-                onCountIncrement: onCountIncrement,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: isCompleted
+            ? Border.all(color: AppColors.completedCardBorder.withValues(alpha: 0.5), width: 1)
+            : null,
+      ),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        margin: EdgeInsets.zero,
+        color: isCompleted ? AppColors.completedCardBackground : null,
+        child: InkWell(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => HabitDetailScreen(habitId: habit.id),
               ),
-              const Gap(12),
-
-              // Habit info (middle)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      habit.name,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            decoration: isCompleted
-                                ? TextDecoration.lineThrough
-                                : null,
-                            color: isCompleted
-                                ? Theme.of(context).textTheme.bodySmall?.color
-                                : null,
-                          ),
-                    ),
-                    const Gap(4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.schedule,
-                          size: 14,
-                          color: Theme.of(context).textTheme.bodySmall?.color,
-                        ),
-                        const Gap(4),
-                        Text(
-                          _formatTime(habit.scheduledTime),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        if (habit.location != null &&
-                            habit.location!.isNotEmpty) ...[
-                          const Gap(12),
-                          Icon(
-                            Icons.place_outlined,
-                            size: 14,
-                            color: Theme.of(context).textTheme.bodySmall?.color,
-                          ),
-                          const Gap(4),
-                          Expanded(
-                            child: Text(
-                              habit.location!,
-                              style: Theme.of(context).textTheme.bodySmall,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
+            );
+          },
+          onLongPress: onLongPress,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                // Habit icon button (left)
+                _HabitIconButton(
+                  todayHabit: todayHabit,
+                  onTap: () => _openTimer(context, habit),
+                  onLongPress: () => _showQuickCompleteDialog(context),
+                  onCountIncrement: onCountIncrement,
                 ),
-              ),
+                const Gap(12),
 
-              // Flame score (right)
-              FlameScore(score: score, size: 44),
-            ],
+                // Habit info (middle)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Habit name
+                      Text(
+                        habit.name,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              decoration: isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              color: isCompleted
+                                  ? Theme.of(context).textTheme.bodySmall?.color
+                                  : null,
+                            ),
+                      ),
+                      const Gap(6),
+                      // Time and location as tags/pills
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          _InfoPill(
+                            icon: Icons.schedule,
+                            label: _formatTime(habit.scheduledTime),
+                          ),
+                          if (habit.location != null &&
+                              habit.location!.isNotEmpty)
+                            _InfoPill(
+                              icon: Icons.place_outlined,
+                              label: habit.location!,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Flame score (right)
+                FlameScore(score: score, size: 44),
+              ],
+            ),
           ),
         ),
       ),
@@ -316,6 +313,46 @@ class _HabitIconButton extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Small pill/tag widget for displaying time and location.
+class _InfoPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _InfoPill({
+    required this.icon,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 12,
+            color: theme.textTheme.bodySmall?.color,
+          ),
+          const Gap(4),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 11,
+            ),
+          ),
+        ],
       ),
     );
   }

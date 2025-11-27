@@ -317,102 +317,161 @@ class _HabitListWithHistory extends ConsumerWidget {
   // Max width for content on wide screens
   static const double _maxContentWidth = 600;
 
+  /// Group habits by time of day.
+  Map<String, List<TodayHabit>> _groupByTimeOfDay(List<TodayHabit> habits) {
+    final morning = <TodayHabit>[];
+    final afternoon = <TodayHabit>[];
+    final evening = <TodayHabit>[];
+
+    for (final habit in habits) {
+      final hour = _parseHour(habit.habit.scheduledTime);
+      if (hour < 12) {
+        morning.add(habit);
+      } else if (hour < 17) {
+        afternoon.add(habit);
+      } else {
+        evening.add(habit);
+      }
+    }
+
+    return {
+      if (morning.isNotEmpty) 'Morning': morning,
+      if (afternoon.isNotEmpty) 'Afternoon': afternoon,
+      if (evening.isNotEmpty) 'Evening': evening,
+    };
+  }
+
+  int _parseHour(String scheduledTime) {
+    try {
+      final parts = scheduledTime.split(':');
+      return int.parse(parts[0]);
+    } catch (e) {
+      return 12; // Default to afternoon
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Separate completed and incomplete habits
-    final incomplete = habits.where((h) => !h.isCompletedToday).toList();
-    final completed = habits.where((h) => h.isCompletedToday).toList();
+    // Group habits by time of day
+    final groupedHabits = _groupByTimeOfDay(habits);
+
+    // Check if all habits are completed
+    final completedCount = habits.where((h) => h.isCompletedToday).length;
+    final allDone = habits.isNotEmpty && completedCount == habits.length;
 
     // Check for purpose prompt
     final nextPurposePrompt = ref.watch(nextPurposePromptProvider);
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: _maxContentWidth),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-          children: [
-            // Date navigation header
-            DateNavHeader(
-              date: selectedDate,
-              period: selectedPeriod,
-              onPrevious: onPrevious,
-              onNext: onNext,
-              onDateTap: onDateTap,
-            ),
-            const Gap(12),
+    return ListView(
+      padding: const EdgeInsets.only(top: 8, bottom: 100),
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _maxContentWidth),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Date navigation header
+                  DateNavHeader(
+                    date: selectedDate,
+                    period: selectedPeriod,
+                    onPrevious: onPrevious,
+                    onNext: onNext,
+                    onDateTap: onDateTap,
+                  ),
+                  const Gap(12),
 
-            // Period selector
-            Center(
-              child: PeriodSelector(
-                selected: selectedPeriod,
-                onChanged: onPeriodChanged,
-              ),
-            ),
-            const Gap(16),
+                  // Period selector
+                  Center(
+                    child: PeriodSelector(
+                      selected: selectedPeriod,
+                      onChanged: onPeriodChanged,
+                    ),
+                  ),
+                  const Gap(16),
 
-            // History bar chart
-            historyAsync.when(
-              data: (data) => HistoryBarChart(
-                data: data,
-                selectedDate: selectedDate,
-                onBarTap: onBarTap,
-              ),
-              loading: () => const SizedBox(
-                height: 120,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (_, __) => const SizedBox(
-                height: 120,
-                child: Center(child: Text('Failed to load history')),
-              ),
-            ),
-            const Gap(24),
+                  // History bar chart
+                  historyAsync.when(
+                    data: (data) => HistoryBarChart(
+                      data: data,
+                      selectedDate: selectedDate,
+                      onBarTap: onBarTap,
+                    ),
+                    loading: () => const SizedBox(
+                      height: 120,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (_, __) => const SizedBox(
+                      height: 120,
+                      child: Center(child: Text('Failed to load history')),
+                    ),
+                  ),
+                  const Gap(16),
 
-            // Purpose prompt banner
-            nextPurposePrompt.when(
-              data: (habit) {
-                if (habit == null) return const SizedBox.shrink();
-                return _PurposePromptBanner(habit: habit);
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
+                  // Stats row
+                  historyAsync.when(
+                    data: (data) => _StatsRow(
+                      completedCount: completedCount,
+                      totalCount: habits.length,
+                      avgScore: data.currentAvgScore,
+                      scoreChange: data.avgScoreChange,
+                    ),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                  const Gap(20),
 
-            // Incomplete habits
-            if (incomplete.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'To Do',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Theme.of(context).textTheme.bodySmall?.color,
+                  // Purpose prompt banner
+                  nextPurposePrompt.when(
+                    data: (habit) {
+                      if (habit == null) return const SizedBox.shrink();
+                      return _PurposePromptBanner(habit: habit);
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+
+                  // All done celebration
+                  if (allDone) ...[
+                    _AllDoneBanner(habitCount: habits.length),
+                    const Gap(16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        "Today's Habits",
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              color: Theme.of(context).textTheme.bodySmall?.color,
+                            ),
                       ),
-                ),
-              ),
-              ...incomplete.map(
-                (habit) => _buildHabitCard(context, ref, habit),
-              ),
-            ],
-
-            // Completed habits
-            if (completed.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Completed',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                    ...habits.map(
+                      (habit) => _buildHabitCard(context, ref, habit),
+                    ),
+                  ] else ...[
+                    // Group habits by time of day
+                    for (final entry in groupedHabits.entries) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          entry.key,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: Theme.of(context).textTheme.bodySmall?.color,
+                              ),
+                        ),
                       ),
-                ),
+                      ...entry.value.map(
+                        (habit) => _buildHabitCard(context, ref, habit),
+                      ),
+                    ],
+                  ],
+                ],
               ),
-              ...completed.map(
-                (habit) => _buildHabitCard(context, ref, habit),
-              ),
-            ],
-          ],
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -630,6 +689,170 @@ class _HabitListWithHistory extends ConsumerWidget {
     await ref.read(completionNotifierProvider.notifier).incrementCount(
           habitId: habitId,
         );
+  }
+}
+
+/// Stats row showing completed count and average score.
+class _StatsRow extends StatelessWidget {
+  final int completedCount;
+  final int totalCount;
+  final double avgScore;
+  final int scoreChange;
+
+  const _StatsRow({
+    required this.completedCount,
+    required this.totalCount,
+    required this.avgScore,
+    required this.scoreChange,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        // Completed box
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.outline.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Completed',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.textTheme.bodySmall?.color,
+                  ),
+                ),
+                const Gap(4),
+                Text(
+                  '$completedCount/$totalCount',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const Gap(12),
+        // Average box
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.outline.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Average',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.textTheme.bodySmall?.color,
+                  ),
+                ),
+                const Gap(4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      avgScore.round().toString(),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (scoreChange != 0) ...[
+                      const Gap(6),
+                      Text(
+                        scoreChange > 0 ? '+$scoreChange' : '$scoreChange',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scoreChange > 0
+                              ? AppColors.success
+                              : AppColors.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Icon(
+                        scoreChange > 0
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward,
+                        size: 14,
+                        color: scoreChange > 0
+                            ? AppColors.success
+                            : AppColors.error,
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Banner shown when all habits are completed.
+class _AllDoneBanner extends StatelessWidget {
+  final int habitCount;
+
+  const _AllDoneBanner({required this.habitCount});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.success.withValues(alpha: 0.15),
+            AppColors.accent.withValues(alpha: 0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.success.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'All done!',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.success,
+            ),
+          ),
+          const Gap(8),
+          Text(
+            'You completed all $habitCount habits today. Great momentum!',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.textTheme.bodySmall?.color,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 }
 
