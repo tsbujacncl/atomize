@@ -1,3 +1,4 @@
+// ignore_for_file: unused_result
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/enums.dart';
@@ -49,8 +50,8 @@ class CompletionNotifier extends Notifier<void> {
     }
 
     // Refresh related providers
-    ref.invalidate(habitNotifierProvider);
-    ref.invalidate(todayHabitsProvider);
+    ref.refresh(habitNotifierProvider);
+    ref.refresh(todayHabitsProvider);
 
     return result;
   }
@@ -68,8 +69,54 @@ class CompletionNotifier extends Notifier<void> {
     );
 
     // Refresh related providers
-    ref.invalidate(habitNotifierProvider);
-    ref.invalidate(todayHabitsProvider);
+    ref.refresh(habitNotifierProvider);
+    ref.refresh(todayHabitsProvider);
+  }
+
+  /// Undo today's completion for a habit (when we don't have CompletionResult).
+  ///
+  /// Fetches the completion from database and uses scoreAtCompletion to restore.
+  Future<bool> undoTodayCompletion({required String habitId}) async {
+    final completionRepo = ref.read(completionRepositoryProvider);
+    final habitRepo = ref.read(habitRepositoryProvider);
+    final prefsRepo = ref.read(preferencesRepositoryProvider);
+
+    // Get today's effective date
+    final now = DateTime.now();
+    final effectiveDate = await prefsRepo.getEffectiveDate(now);
+
+    // Get today's completion for this habit
+    final completions = await completionRepo.getForHabitOnDate(habitId, effectiveDate);
+    if (completions.isEmpty) {
+      return false; // No completion to undo
+    }
+
+    // Get the most recent completion
+    final completion = completions.last;
+
+    // Get current habit to estimate maturity change
+    final habit = await habitRepo.getById(habitId);
+    if (habit == null) return false;
+
+    // Estimate previous maturity: if score crossed 50, maturity was incremented
+    int previousMaturity = habit.maturity;
+    if (habit.score > 50 && completion.scoreAtCompletion <= 50) {
+      previousMaturity = (habit.maturity - 1).clamp(0, 999);
+    }
+
+    // Undo using the stored scoreAtCompletion
+    await _scoreService.undoCompletion(
+      habitId: habitId,
+      completionId: completion.id,
+      previousScore: completion.scoreAtCompletion,
+      previousMaturity: previousMaturity,
+    );
+
+    // Refresh related providers
+    ref.refresh(habitNotifierProvider);
+    ref.refresh(todayHabitsProvider);
+
+    return true;
   }
 
   /// Increment count for a count-type habit.
@@ -87,8 +134,8 @@ class CompletionNotifier extends Notifier<void> {
     );
 
     // Refresh related providers
-    ref.invalidate(habitNotifierProvider);
-    ref.invalidate(todayHabitsProvider);
+    ref.refresh(habitNotifierProvider);
+    ref.refresh(todayHabitsProvider);
 
     return newCount;
   }
@@ -98,8 +145,8 @@ class CompletionNotifier extends Notifier<void> {
     await _scoreService.applyDayEndDecay();
 
     // Refresh related providers
-    ref.invalidate(habitNotifierProvider);
-    ref.invalidate(todayHabitsProvider);
+    ref.refresh(habitNotifierProvider);
+    ref.refresh(todayHabitsProvider);
   }
 }
 
@@ -118,8 +165,8 @@ final dayBoundaryDecayProvider = FutureProvider<int>((ref) async {
 
   // If any decay was applied, refresh habit providers
   if (decayCount > 0) {
-    ref.invalidate(habitNotifierProvider);
-    ref.invalidate(todayHabitsProvider);
+    ref.refresh(habitNotifierProvider);
+    ref.refresh(todayHabitsProvider);
   }
 
   return decayCount;
