@@ -250,19 +250,29 @@ class _EmptyState extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.local_fire_department_outlined,
-                size: 80,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+              // Gradient flame icon
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [AppColors.flameBlue, AppColors.flameOrange],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ).createShader(bounds),
+                blendMode: BlendMode.srcIn,
+                child: const Icon(
+                  Icons.local_fire_department,
+                  size: 80,
+                ),
               ),
               const Gap(24),
               Text(
-                'No habits yet',
-                style: Theme.of(context).textTheme.headlineSmall,
+                'Start your first habit',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
-              const Gap(8),
+              const Gap(12),
               Text(
-                'Create your first habit to get started.\nSmall steps lead to big changes.',
+                'Small steps lead to big changes.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
@@ -278,7 +288,7 @@ class _EmptyState extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.add),
-                label: const Text('Create First Habit'),
+                label: const Text('Add Habit'),
               ),
             ],
           ),
@@ -361,6 +371,19 @@ class _HabitListWithHistory extends ConsumerWidget {
       return int.parse(parts[0]);
     } catch (e) {
       return 12; // Default to afternoon
+    }
+  }
+
+  String _getSectionEmoji(String section) {
+    switch (section) {
+      case 'Morning':
+        return '☀️ ';
+      case 'Afternoon':
+        return '🌤️ ';
+      case 'Evening':
+        return '🌙 ';
+      default:
+        return '';
     }
   }
 
@@ -467,9 +490,9 @@ class _HabitListWithHistory extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Text(
-                        entry.key,
+                        _getSectionEmoji(entry.key) + entry.key,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: Theme.of(context).textTheme.bodySmall?.color,
+                              color: AppColors.sectionHeaderText,
                             ),
                       ),
                     ),
@@ -735,7 +758,14 @@ class _TodayStatsRow extends StatelessWidget {
                     ],
                   ],
                 ),
-                const Gap(8),
+                Text(
+                  '(Today)',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                    fontSize: 11,
+                  ),
+                ),
+                const Gap(4),
                 Text(
                   '$completedCount/$totalCount',
                   style: theme.textTheme.titleLarge?.copyWith(
@@ -766,7 +796,14 @@ class _TodayStatsRow extends StatelessWidget {
                   'Average',
                   style: theme.textTheme.bodySmall,
                 ),
-                const Gap(8),
+                Text(
+                  '(Today)',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                    fontSize: 11,
+                  ),
+                ),
+                const Gap(4),
                 Row(
                   children: [
                     Icon(

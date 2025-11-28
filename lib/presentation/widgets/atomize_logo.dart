@@ -23,7 +23,7 @@ class AtomizeLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textStyle = GoogleFonts.inter(
+    final textStyle = GoogleFonts.nunito(
       fontSize: fontSize,
       fontWeight: FontWeight.w700,
       color: Colors.white, // Base color for ShaderMask

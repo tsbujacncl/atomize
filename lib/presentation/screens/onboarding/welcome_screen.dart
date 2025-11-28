@@ -43,7 +43,7 @@ class WelcomeScreen extends StatelessWidget {
                     ),
               ),
 
-              const Spacer(flex: 3),
+              const Gap(48),
 
               // Get Started button
               FilledButton(
@@ -68,7 +68,7 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
 
-              const Gap(32),
+              const Spacer(flex: 3),
             ],
           ),
         ),

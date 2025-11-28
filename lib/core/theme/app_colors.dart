@@ -7,14 +7,14 @@ import 'package:flutter/material.dart';
 abstract final class AppColors {
   // ============== Accent ==============
 
-  /// Primary accent color - calm teal
-  static const Color accent = Color(0xFF4ECDC4);
+  /// Primary accent color - warm orange
+  static const Color accent = Color(0xFFF97316);
 
   /// Lighter variant of accent
-  static const Color accentLight = Color(0xFF7EDDD7);
+  static const Color accentLight = Color(0xFFFB923C);
 
   /// Darker variant of accent
-  static const Color accentDark = Color(0xFF2E9D96);
+  static const Color accentDark = Color(0xFFEA580C);
 
   // ============== Flame Colors by Score ==============
 
@@ -35,11 +35,11 @@ abstract final class AppColors {
 
   // ============== Light Theme ==============
 
-  /// Light theme background - warm cream
-  static const Color lightBackground = Color(0xFFFFF9F5);
+  /// Light theme background - warm white
+  static const Color lightBackground = Color(0xFFFFFDF9);
 
   /// Light theme surface - warm white
-  static const Color lightSurface = Color(0xFFFFFCFA);
+  static const Color lightSurface = Color(0xFFFFFFFF);
 
   /// Light theme card - warm white
   static const Color lightCard = Color(0xFFFFFFFF);
@@ -49,6 +49,15 @@ abstract final class AppColors {
 
   /// Completed card border - green
   static const Color completedCardBorder = Color(0xFF22C55E);
+
+  /// Tag pill background - light warm cream
+  static const Color tagPillBackground = Color(0xFFFFF7ED);
+
+  /// Tag pill border - subtle warm
+  static const Color tagPillBorder = Color(0xFFFED7AA);
+
+  /// Section header text - warm brown/grey
+  static const Color sectionHeaderText = Color(0xFF78716C);
 
   /// Light theme primary text
   static const Color lightTextPrimary = Color(0xFF1F2937);
@@ -100,25 +109,43 @@ abstract final class AppColors {
 
   /// Get the flame color for a given score (0-100).
   ///
-  /// Color progression:
+  /// Color progression (heat system):
   /// - 0-30: Blue (#3B82F6)
-  /// - 30-50: Blue→Orange gradient
-  /// - 50-80: Orange (#F97316)
-  /// - 80-95: Orange→Red gradient
-  /// - 95-100: Red (#EF4444) with golden core
+  /// - 30-60: Blue→Orange gradient
+  /// - 60-80: Orange (#F97316)
+  /// - 80-100: Red (#EF4444)
   static Color getFlameColor(double score) {
     if (score < 30) {
       return flameBlue;
-    } else if (score < 50) {
+    } else if (score < 60) {
       // Transition from blue to orange
-      final t = (score - 30) / 20;
+      final t = (score - 30) / 30;
       return Color.lerp(flameBlue, flameOrange, t)!;
     } else if (score < 80) {
       return flameOrange;
-    } else if (score < 95) {
-      // Transition from orange to red
-      final t = (score - 80) / 15;
-      return Color.lerp(flameOrange, flameRed, t)!;
+    } else {
+      return flameRed;
+    }
+  }
+
+  /// Get the bar chart color based on completion percentage.
+  ///
+  /// Color based on % of habits completed:
+  /// - 0%: Grey (no bar shown)
+  /// - 1-30%: Blue
+  /// - 31-60%: Light orange
+  /// - 61-80%: Orange
+  /// - 81-100%: Red
+  static Color getBarColor(double completionPercent) {
+    if (completionPercent <= 0) {
+      return const Color(0xFFD1D5DB); // Grey
+    } else if (completionPercent <= 30) {
+      return flameBlue;
+    } else if (completionPercent <= 60) {
+      // Light orange - blend between blue and orange
+      return Color.lerp(flameBlue, flameOrange, 0.5)!;
+    } else if (completionPercent <= 80) {
+      return flameOrange;
     } else {
       return flameRed;
     }

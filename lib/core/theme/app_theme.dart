@@ -27,7 +27,7 @@ abstract final class AppTheme {
         foregroundColor: AppColors.lightTextPrimary,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: GoogleFonts.nunito(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.lightTextPrimary,
@@ -50,7 +50,7 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: GoogleFonts.inter(
+          textStyle: GoogleFonts.nunito(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -64,7 +64,7 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: GoogleFonts.inter(
+          textStyle: GoogleFonts.nunito(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -73,7 +73,7 @@ abstract final class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.accent,
-          textStyle: GoogleFonts.inter(
+          textStyle: GoogleFonts.nunito(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -100,7 +100,7 @@ abstract final class AppTheme {
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        hintStyle: GoogleFonts.inter(
+        hintStyle: GoogleFonts.nunito(
           color: AppColors.lightTextTertiary,
         ),
       ),
@@ -120,7 +120,7 @@ abstract final class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.darkSurface,
-        contentTextStyle: GoogleFonts.inter(
+        contentTextStyle: GoogleFonts.nunito(
           color: AppColors.darkTextPrimary,
         ),
         shape: RoundedRectangleBorder(
@@ -149,7 +149,7 @@ abstract final class AppTheme {
         foregroundColor: AppColors.darkTextPrimary,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: GoogleFonts.nunito(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.darkTextPrimary,
@@ -171,7 +171,7 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: GoogleFonts.inter(
+          textStyle: GoogleFonts.nunito(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -185,7 +185,7 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: GoogleFonts.inter(
+          textStyle: GoogleFonts.nunito(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -194,7 +194,7 @@ abstract final class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.accent,
-          textStyle: GoogleFonts.inter(
+          textStyle: GoogleFonts.nunito(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -221,7 +221,7 @@ abstract final class AppTheme {
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        hintStyle: GoogleFonts.inter(
+        hintStyle: GoogleFonts.nunito(
           color: AppColors.darkTextTertiary,
         ),
       ),
@@ -241,7 +241,7 @@ abstract final class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.lightSurface,
-        contentTextStyle: GoogleFonts.inter(
+        contentTextStyle: GoogleFonts.nunito(
           color: AppColors.lightTextPrimary,
         ),
         shape: RoundedRectangleBorder(
@@ -262,81 +262,81 @@ abstract final class AppTheme {
 
     return TextTheme(
       // Display styles
-      displayLarge: GoogleFonts.inter(
+      displayLarge: GoogleFonts.nunito(
         fontSize: 57,
         fontWeight: FontWeight.w400,
         color: primaryColor,
       ),
-      displayMedium: GoogleFonts.inter(
+      displayMedium: GoogleFonts.nunito(
         fontSize: 45,
         fontWeight: FontWeight.w400,
         color: primaryColor,
       ),
-      displaySmall: GoogleFonts.inter(
+      displaySmall: GoogleFonts.nunito(
         fontSize: 36,
         fontWeight: FontWeight.w400,
         color: primaryColor,
       ),
       // Headline styles
-      headlineLarge: GoogleFonts.inter(
+      headlineLarge: GoogleFonts.nunito(
         fontSize: 32,
         fontWeight: FontWeight.w600,
         color: primaryColor,
       ),
-      headlineMedium: GoogleFonts.inter(
+      headlineMedium: GoogleFonts.nunito(
         fontSize: 28,
         fontWeight: FontWeight.w600,
         color: primaryColor,
       ),
-      headlineSmall: GoogleFonts.inter(
+      headlineSmall: GoogleFonts.nunito(
         fontSize: 24,
         fontWeight: FontWeight.w600,
         color: primaryColor,
       ),
       // Title styles
-      titleLarge: GoogleFonts.inter(
+      titleLarge: GoogleFonts.nunito(
         fontSize: 22,
         fontWeight: FontWeight.w600,
         color: primaryColor,
       ),
-      titleMedium: GoogleFonts.inter(
+      titleMedium: GoogleFonts.nunito(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: primaryColor,
       ),
-      titleSmall: GoogleFonts.inter(
+      titleSmall: GoogleFonts.nunito(
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: primaryColor,
       ),
       // Body styles
-      bodyLarge: GoogleFonts.inter(
+      bodyLarge: GoogleFonts.nunito(
         fontSize: 16,
         fontWeight: FontWeight.w400,
         color: primaryColor,
       ),
-      bodyMedium: GoogleFonts.inter(
+      bodyMedium: GoogleFonts.nunito(
         fontSize: 14,
         fontWeight: FontWeight.w400,
         color: primaryColor,
       ),
-      bodySmall: GoogleFonts.inter(
+      bodySmall: GoogleFonts.nunito(
         fontSize: 12,
         fontWeight: FontWeight.w400,
         color: secondaryColor,
       ),
       // Label styles
-      labelLarge: GoogleFonts.inter(
+      labelLarge: GoogleFonts.nunito(
         fontSize: 14,
         fontWeight: FontWeight.w500,
         color: primaryColor,
       ),
-      labelMedium: GoogleFonts.inter(
+      labelMedium: GoogleFonts.nunito(
         fontSize: 12,
         fontWeight: FontWeight.w500,
         color: primaryColor,
       ),
-      labelSmall: GoogleFonts.inter(
+      labelSmall: GoogleFonts.nunito(
         fontSize: 11,
         fontWeight: FontWeight.w500,
         color: secondaryColor,

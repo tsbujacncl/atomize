@@ -56,6 +56,13 @@ class _HabitCardState extends ConsumerState<HabitCard> {
                 color: AppColors.completedCardBorder.withValues(alpha: 0.5),
                 width: 1)
             : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Card(
         clipBehavior: Clip.antiAlias,
@@ -147,7 +154,9 @@ class _HabitCardState extends ConsumerState<HabitCard> {
 
   Widget _buildHabitIcon(ThemeData theme, IconData iconData) {
     final score = habit.score;
-    final color = AppColors.getFlameColor(score);
+    final flameColor = AppColors.getFlameColor(score);
+    // Use orange for completed state, flame color for progress
+    final completedColor = AppColors.accent;
 
     // Progress ring for count/weekly types
     double? progress;
@@ -166,14 +175,14 @@ class _HabitCardState extends ConsumerState<HabitCard> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Background circle
+          // Background circle - orange when completed
           Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isCompleted
-                  ? color.withValues(alpha: 0.15)
+                  ? completedColor.withValues(alpha: 0.15)
                   : theme.colorScheme.surfaceContainerHighest,
             ),
           ),
@@ -187,15 +196,15 @@ class _HabitCardState extends ConsumerState<HabitCard> {
                 value: progress,
                 strokeWidth: 2.5,
                 backgroundColor: theme.colorScheme.outline.withValues(alpha: 0.2),
-                valueColor: AlwaysStoppedAnimation<Color>(color),
+                valueColor: AlwaysStoppedAnimation<Color>(flameColor),
               ),
             ),
 
-          // Icon
+          // Icon - orange when completed
           Icon(
             iconData,
             size: 22,
-            color: isCompleted ? color : theme.colorScheme.onSurfaceVariant,
+            color: isCompleted ? completedColor : theme.colorScheme.onSurfaceVariant,
           ),
 
           // Progress text badge (for count/weekly when not completed)
@@ -208,7 +217,7 @@ class _HabitCardState extends ConsumerState<HabitCard> {
                   color: theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: color.withValues(alpha: 0.5),
+                    color: flameColor.withValues(alpha: 0.5),
                     width: 1,
                   ),
                 ),
@@ -217,7 +226,7 @@ class _HabitCardState extends ConsumerState<HabitCard> {
                   style: TextStyle(
                     fontSize: 8,
                     fontWeight: FontWeight.bold,
-                    color: color,
+                    color: flameColor,
                   ),
                 ),
               ),
@@ -294,43 +303,63 @@ class _HabitCardState extends ConsumerState<HabitCard> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (hasTime) ...[
+        if (hasTime)
+          _buildTagPill(
+            icon: Icons.schedule,
+            text: _formatTimeShort(habit.scheduledTime),
+            theme: theme,
+          ),
+        if (hasTime && hasLocation) const Gap(6),
+        if (hasLocation)
+          _buildTagPill(
+            icon: Icons.place_outlined,
+            text: habit.location!,
+            theme: theme,
+            maxWidth: 70,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTagPill({
+    required IconData icon,
+    required String text,
+    required ThemeData theme,
+    double? maxWidth,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.tagPillBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.tagPillBorder,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
           Icon(
-            Icons.schedule,
+            icon,
             size: 12,
-            color: theme.textTheme.bodySmall?.color,
-          ),
-          const Gap(2),
-          Text(
-            _formatTimeShort(habit.scheduledTime),
-            style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
-          ),
-        ],
-        if (hasTime && hasLocation) ...[
-          const Gap(4),
-          Text(
-            '·',
-            style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+            color: AppColors.sectionHeaderText,
           ),
           const Gap(4),
-        ],
-        if (hasLocation) ...[
-          Icon(
-            Icons.place_outlined,
-            size: 12,
-            color: theme.textTheme.bodySmall?.color,
-          ),
-          const Gap(2),
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 60),
+            constraints: BoxConstraints(maxWidth: maxWidth ?? 60),
             child: Text(
-              habit.location!,
-              style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+              text,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 11,
+                color: AppColors.sectionHeaderText,
+                fontWeight: FontWeight.w500,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
-      ],
+      ),
     );
   }
 

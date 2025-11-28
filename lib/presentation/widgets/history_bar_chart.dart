@@ -53,177 +53,203 @@ class _DailyBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use SingleChildScrollView for 4w view (28 bars)
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final needsScroll = stats.length > 7;
 
-    // Get today's date for comparison
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    Widget chart = SizedBox(
-      height: needsScroll ? 120 : 140, // More height for two-row labels
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: stats.map((stat) {
-          final statDate = DateTime(stat.date.year, stat.date.month, stat.date.day);
-          final isSelected = selectedDate != null &&
-              stat.date.year == selectedDate!.year &&
-              stat.date.month == selectedDate!.month &&
-              stat.date.day == selectedDate!.day;
-          final isToday = statDate.isAtSameMomentAs(today);
+    final yAxisLabels = _getYAxisLabels(maxValue);
+    final chartHeight = 100.0;
+    final labelAreaHeight = 50.0; // Extra space for labels + today dot
+    final effectiveMax = maxValue > 0 ? maxValue : 1;
+    final barWidth = needsScroll ? 20.0 : 28.0;
+    final columnWidth = needsScroll ? 28.0 : 44.0;
 
-          return _DayBar(
-            stat: stat,
-            maxValue: maxValue,
-            isSelected: isSelected,
-            isToday: isToday,
-            onTap: stat.isFuture ? null : () => onBarTap?.call(stat.date),
-            compact: needsScroll,
-          );
-        }).toList(),
-      ),
-    );
+    // Build bars-only row (no labels)
+    Widget barsOnlyRow = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: stats.map((stat) {
+        final isSelected = selectedDate != null &&
+            stat.date.year == selectedDate!.year &&
+            stat.date.month == selectedDate!.month &&
+            stat.date.day == selectedDate!.day;
 
-    if (needsScroll) {
-      chart = SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: chart,
-        ),
-      );
-    }
+        final barHeight = (stat.completedCount / effectiveMax * chartHeight).clamp(0.0, chartHeight);
 
-    return chart;
-  }
-}
+        Color barColor;
+        if (stat.isFuture) {
+          barColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+        } else if (stat.completedCount == 0) {
+          barColor = isDark ? Colors.grey.shade700 : Colors.grey.shade400;
+        } else {
+          barColor = AppColors.getBarColor(stat.completionRate * 100);
+        }
 
-/// Single day bar in the chart.
-class _DayBar extends StatelessWidget {
-  final DayStats stat;
-  final int maxValue;
-  final bool isSelected;
-  final bool isToday;
-  final VoidCallback? onTap;
-  final bool compact;
-
-  const _DayBar({
-    required this.stat,
-    required this.maxValue,
-    required this.isSelected,
-    required this.isToday,
-    this.onTap,
-    this.compact = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    // Calculate bar height based on completion percentage (0-100%)
-    final barHeight = (stat.completionRate * 80).clamp(0.0, 80.0);
-
-    // Determine bar color - consistent teal/accent for completed, grey for empty/future
-    Color barColor;
-    if (stat.isFuture) {
-      barColor = isDark
-          ? Colors.grey.shade800
-          : Colors.grey.shade300;
-    } else if (stat.completedCount == 0) {
-      barColor = isDark
-          ? Colors.grey.shade700
-          : Colors.grey.shade400;
-    } else {
-      // Use accent color for any completion
-      barColor = AppColors.accent;
-    }
-
-    // Day label (M, T, W, etc.)
-    final dayLabel = DateFormat('E').format(stat.date)[0];
-    final dayNum = stat.date.day.toString();
-
-    // Tooltip message
-    final tooltipMessage = '${stat.completedCount}/${stat.totalHabits} completed';
-
-    return Tooltip(
-      message: stat.isFuture ? '' : tooltipMessage,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: compact ? 24 : 36,
-          padding: EdgeInsets.symmetric(horizontal: compact ? 2 : 4),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // Bar
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: compact ? 16 : 24,
-                height: barHeight > 0 ? barHeight : 4,
-                decoration: BoxDecoration(
-                  color: barColor,
-                  borderRadius: BorderRadius.circular(4),
-                  border: isSelected
-                      ? Border.all(
-                          color: theme.colorScheme.primary,
-                          width: 2,
-                        )
-                      : null,
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                            blurRadius: 4,
-                            spreadRadius: 1,
-                          ),
-                        ]
-                      : null,
+        return GestureDetector(
+          onTap: stat.isFuture ? null : () => onBarTap?.call(stat.date),
+          child: Tooltip(
+            message: stat.isFuture ? '' : '${stat.completedCount}/${stat.totalHabits} completed',
+            child: SizedBox(
+              width: columnWidth,
+              child: Center(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: barWidth,
+                  height: stat.completedCount == 0 && !stat.isFuture ? 3 : barHeight,
+                  decoration: BoxDecoration(
+                    color: barColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      topRight: Radius.circular(4),
+                    ),
+                    border: isSelected ? Border.all(color: theme.colorScheme.primary, width: 2) : null,
+                    boxShadow: isSelected ? [
+                      BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.3), blurRadius: 4, spreadRadius: 1),
+                    ] : null,
+                  ),
                 ),
               ),
-              const SizedBox(height: 4),
-              // Row 1: Day letter (for 7d) or date number (for 4w)
+            ),
+          ),
+        );
+      }).toList(),
+    );
+
+    // Build labels-only row
+    Widget labelsRow = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: stats.map((stat) {
+        final statDate = DateTime(stat.date.year, stat.date.month, stat.date.day);
+        final isSelected = selectedDate != null &&
+            stat.date.year == selectedDate!.year &&
+            stat.date.month == selectedDate!.month &&
+            stat.date.day == selectedDate!.day;
+        final isToday = statDate.isAtSameMomentAs(today);
+        final todayColor = AppColors.accent;
+        final dayLabel = DateFormat('E').format(stat.date)[0];
+        final dayNum = stat.date.day.toString();
+
+        return SizedBox(
+          width: columnWidth,
+          child: Column(
+            children: [
               Text(
-                compact ? dayNum : dayLabel,
+                needsScroll ? dayNum : dayLabel,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: isSelected || isToday
-                      ? theme.colorScheme.primary
-                      : theme.textTheme.bodySmall?.color,
+                  color: isToday ? todayColor : (isSelected ? theme.colorScheme.primary : theme.textTheme.bodySmall?.color),
                   fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
-              // Row 2: Date number (only for 7d view)
-              if (!compact) ...[
+              if (!needsScroll)
                 Text(
                   dayNum,
                   style: theme.textTheme.labelSmall?.copyWith(
                     fontSize: 10,
-                    color: isSelected || isToday
-                        ? theme.colorScheme.primary
-                        : theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                    color: isToday ? todayColor : (isSelected ? theme.colorScheme.primary : theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7)),
                     fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
-              ],
-              // Today indicator dot
               if (isToday)
                 Container(
-                  width: 4,
-                  height: 4,
+                  width: 5, height: 5,
                   margin: const EdgeInsets.only(top: 2),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary,
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: BoxDecoration(color: todayColor, shape: BoxShape.circle),
                 )
               else
-                const SizedBox(height: 6),
+                const SizedBox(height: 7),
             ],
           ),
-        ),
+        );
+      }).toList(),
+    );
+
+    if (needsScroll) {
+      barsOnlyRow = SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: barsOnlyRow),
+      );
+      labelsRow = SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: labelsRow),
+      );
+    }
+
+    return SizedBox(
+      height: chartHeight + labelAreaHeight,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Y-axis labels
+          SizedBox(
+            width: 24,
+            height: chartHeight,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                for (final label in yAxisLabels)
+                  Positioned(
+                    bottom: (label / effectiveMax * chartHeight) - 6,
+                    right: 0,
+                    child: Text(
+                      label.toString(),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 10,
+                        color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Chart + labels
+          Expanded(
+            child: Column(
+              children: [
+                // Chart area with gridlines and bars
+                SizedBox(
+                  height: chartHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Gridlines
+                      for (final label in yAxisLabels)
+                        Positioned(
+                          bottom: label / effectiveMax * chartHeight,
+                          left: 0,
+                          right: 0,
+                          child: Container(height: 1, color: theme.dividerColor.withValues(alpha: 0.3)),
+                        ),
+                      // Bars row (aligned to bottom)
+                      Positioned(left: 0, right: 0, bottom: 0, child: barsOnlyRow),
+                    ],
+                  ),
+                ),
+                // Label area (below chart)
+                const SizedBox(height: 4),
+                labelsRow,
+              ],
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  List<int> _getYAxisLabels(int maxValue) {
+    if (maxValue <= 0) return [0, 1];
+    if (maxValue <= 3) return List.generate(maxValue + 1, (i) => i);
+    if (maxValue <= 6) return [0, (maxValue / 2).round(), maxValue];
+    final step = (maxValue / 4).ceil();
+    final labels = <int>[0];
+    for (var i = step; i < maxValue; i += step) {
+      labels.add(i);
+    }
+    labels.add(maxValue);
+    return labels;
   }
 }
 
@@ -243,158 +269,178 @@ class _MonthlyBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final needsScroll = stats.length > 12;
 
-    // Get current month for comparison
     final now = DateTime.now();
     final currentMonth = DateTime(now.year, now.month, 1);
 
-    Widget chart = SizedBox(
-      height: 120,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: stats.map((stat) {
-          final isSelected = selectedDate != null &&
-              stat.month.year == selectedDate!.year &&
-              stat.month.month == selectedDate!.month;
-          final isCurrentMonth = stat.month.year == currentMonth.year &&
-              stat.month.month == currentMonth.month;
+    final chartHeight = 100.0;
+    final labelAreaHeight = 35.0; // Extra space for labels + dot
+    final yAxisValues = [0.0, 0.5, 1.0];
+    final barWidth = needsScroll ? 22.0 : 28.0;
+    final columnWidth = needsScroll ? 32.0 : 44.0;
 
-          return _MonthBar(
-            stat: stat,
-            maxValue: maxValue,
-            isSelected: isSelected,
-            isCurrentMonth: isCurrentMonth,
-            onTap: stat.isFuture ? null : () => onBarTap?.call(stat.month),
-            compact: needsScroll,
-          );
-        }).toList(),
-      ),
-    );
+    // Build bars-only row
+    Widget barsOnlyRow = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: stats.map((stat) {
+        final isSelected = selectedDate != null &&
+            stat.month.year == selectedDate!.year &&
+            stat.month.month == selectedDate!.month;
 
-    if (needsScroll) {
-      chart = SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: chart,
-        ),
-      );
-    }
+        final barHeight = (stat.completionRate * chartHeight).clamp(0.0, chartHeight);
 
-    return chart;
-  }
-}
+        Color barColor;
+        if (stat.isFuture) {
+          barColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+        } else if (stat.totalCompletions == 0) {
+          barColor = isDark ? Colors.grey.shade700 : Colors.grey.shade400;
+        } else {
+          barColor = AppColors.getBarColor(stat.completionRate * 100);
+        }
 
-/// Single month bar in the chart.
-class _MonthBar extends StatelessWidget {
-  final MonthStats stat;
-  final int maxValue;
-  final bool isSelected;
-  final bool isCurrentMonth;
-  final VoidCallback? onTap;
-  final bool compact;
+        final percentage = (stat.completionRate * 100).round();
+        final tooltipMessage = '${stat.totalCompletions}/${stat.totalPossibleCompletions} ($percentage%)';
 
-  const _MonthBar({
-    required this.stat,
-    required this.maxValue,
-    required this.isSelected,
-    required this.isCurrentMonth,
-    this.onTap,
-    this.compact = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    // Calculate bar height based on completion percentage (0-100%)
-    final barHeight = (stat.completionRate * 80).clamp(0.0, 80.0);
-
-    // Determine bar color - consistent teal/accent for completed, grey for empty/future
-    Color barColor;
-    if (stat.isFuture) {
-      barColor = isDark
-          ? Colors.grey.shade800
-          : Colors.grey.shade300;
-    } else if (stat.totalCompletions == 0) {
-      barColor = isDark
-          ? Colors.grey.shade700
-          : Colors.grey.shade400;
-    } else {
-      // Use accent color for any completion
-      barColor = AppColors.accent;
-    }
-
-    // Tooltip message showing completion stats
-    final percentage = (stat.completionRate * 100).round();
-    final tooltipMessage = '${stat.totalCompletions}/${stat.totalPossibleCompletions} ($percentage%)';
-
-    return Tooltip(
-      message: stat.isFuture ? '' : tooltipMessage,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: compact ? 28 : 36,
-          padding: EdgeInsets.symmetric(horizontal: compact ? 2 : 4),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // Bar
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: compact ? 20 : 28,
-                height: barHeight > 0 ? barHeight : 4,
-                decoration: BoxDecoration(
-                  color: barColor,
-                  borderRadius: BorderRadius.circular(4),
-                  border: isSelected
-                      ? Border.all(
-                          color: theme.colorScheme.primary,
-                          width: 2,
-                        )
-                      : null,
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                            blurRadius: 4,
-                            spreadRadius: 1,
-                          ),
-                        ]
-                      : null,
+        return GestureDetector(
+          onTap: stat.isFuture ? null : () => onBarTap?.call(stat.month),
+          child: Tooltip(
+            message: stat.isFuture ? '' : tooltipMessage,
+            child: SizedBox(
+              width: columnWidth,
+              child: Center(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: barWidth,
+                  height: stat.totalCompletions == 0 && !stat.isFuture ? 3 : barHeight,
+                  decoration: BoxDecoration(
+                    color: barColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      topRight: Radius.circular(4),
+                    ),
+                    border: isSelected ? Border.all(color: theme.colorScheme.primary, width: 2) : null,
+                    boxShadow: isSelected ? [
+                      BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.3), blurRadius: 4, spreadRadius: 1),
+                    ] : null,
+                  ),
                 ),
               ),
-              const SizedBox(height: 4),
-              // Month label
+            ),
+          ),
+        );
+      }).toList(),
+    );
+
+    // Build labels-only row
+    Widget labelsRow = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: stats.map((stat) {
+        final isSelected = selectedDate != null &&
+            stat.month.year == selectedDate!.year &&
+            stat.month.month == selectedDate!.month;
+        final isCurrentMonth = stat.month.year == currentMonth.year &&
+            stat.month.month == currentMonth.month;
+        final currentMonthColor = AppColors.accent;
+
+        return SizedBox(
+          width: columnWidth,
+          child: Column(
+            children: [
               Text(
                 stat.label,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: isSelected || isCurrentMonth
-                      ? theme.colorScheme.primary
-                      : theme.textTheme.bodySmall?.color,
+                  color: isCurrentMonth ? currentMonthColor : (isSelected ? theme.colorScheme.primary : theme.textTheme.bodySmall?.color),
                   fontWeight: isSelected || isCurrentMonth ? FontWeight.bold : FontWeight.normal,
-                  fontSize: compact ? 9 : null,
+                  fontSize: needsScroll ? 9 : null,
                 ),
               ),
-              // Current month indicator dot
               if (isCurrentMonth)
                 Container(
-                  width: 4,
-                  height: 4,
+                  width: 5, height: 5,
                   margin: const EdgeInsets.only(top: 2),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary,
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: BoxDecoration(color: currentMonthColor, shape: BoxShape.circle),
                 )
               else
-                const SizedBox(height: 6),
+                const SizedBox(height: 7),
             ],
           ),
-        ),
+        );
+      }).toList(),
+    );
+
+    if (needsScroll) {
+      barsOnlyRow = SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: barsOnlyRow),
+      );
+      labelsRow = SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: labelsRow),
+      );
+    }
+
+    return SizedBox(
+      height: chartHeight + labelAreaHeight,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Y-axis labels
+          SizedBox(
+            width: 32,
+            height: chartHeight,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                for (final value in yAxisValues)
+                  Positioned(
+                    bottom: (value * chartHeight) - 6,
+                    right: 0,
+                    child: Text(
+                      '${(value * 100).toInt()}%',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 9,
+                        color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Chart + labels
+          Expanded(
+            child: Column(
+              children: [
+                // Chart area with gridlines and bars
+                SizedBox(
+                  height: chartHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Gridlines
+                      for (final value in yAxisValues)
+                        Positioned(
+                          bottom: value * chartHeight,
+                          left: 0,
+                          right: 0,
+                          child: Container(height: 1, color: theme.dividerColor.withValues(alpha: 0.3)),
+                        ),
+                      // Bars row (aligned to bottom)
+                      Positioned(left: 0, right: 0, bottom: 0, child: barsOnlyRow),
+                    ],
+                  ),
+                ),
+                // Label area (below chart)
+                const SizedBox(height: 4),
+                labelsRow,
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
