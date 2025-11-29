@@ -7,14 +7,17 @@ import 'package:flutter/material.dart';
 abstract final class AppColors {
   // ============== Accent ==============
 
-  /// Primary accent color - warm orange
-  static const Color accent = Color(0xFFF97316);
+  /// Primary accent color - indigo
+  static const Color accent = Color(0xFF6366F1);
 
   /// Lighter variant of accent
-  static const Color accentLight = Color(0xFFFB923C);
+  static const Color accentLight = Color(0xFF818CF8);
 
   /// Darker variant of accent
-  static const Color accentDark = Color(0xFFEA580C);
+  static const Color accentDark = Color(0xFF4F46E5);
+
+  /// Secondary accent - violet
+  static const Color accentSecondary = Color(0xFFA78BFA);
 
   // ============== Flame Colors by Score ==============
 
@@ -104,6 +107,18 @@ abstract final class AppColors {
 
   /// Error color
   static const Color error = Color(0xFFEF4444);
+
+  // ============== Overdue Habit Colors ==============
+  // Note: Overdue cards keep white background, only elements turn red
+
+  /// Overdue text/icon/border color - matches error color
+  static const Color overdueColor = Color(0xFFEF4444);
+
+  /// Overdue time pill background - very light red
+  static const Color overdueTimePillBackground = Color(0xFFFEE2E2);
+
+  /// Overdue time pill text/icon color
+  static const Color overdueTimePillText = Color(0xFFEF4444);
 
   // ============== Flame Color Helpers ==============
 

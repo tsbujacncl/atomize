@@ -88,6 +88,9 @@ class _DailyBarChart extends StatelessWidget {
           barColor = AppColors.getBarColor(stat.completionRate * 100);
         }
 
+        // Empty bars show as flat grey line, not rounded pill
+        final isEmpty = stat.completedCount == 0 && !stat.isFuture;
+
         return GestureDetector(
           onTap: stat.isFuture ? null : () => onBarTap?.call(stat.date),
           child: Tooltip(
@@ -95,22 +98,28 @@ class _DailyBarChart extends StatelessWidget {
             child: SizedBox(
               width: columnWidth,
               child: Center(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: barWidth,
-                  height: stat.completedCount == 0 && !stat.isFuture ? 3 : barHeight,
-                  decoration: BoxDecoration(
-                    color: barColor,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(4),
-                      topRight: Radius.circular(4),
-                    ),
-                    border: isSelected ? Border.all(color: theme.colorScheme.primary, width: 2) : null,
-                    boxShadow: isSelected ? [
-                      BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.3), blurRadius: 4, spreadRadius: 1),
-                    ] : null,
-                  ),
-                ),
+                child: isEmpty
+                    ? Container(
+                        width: barWidth,
+                        height: 2,
+                        color: isDark ? Colors.grey.shade700 : Colors.grey.shade400,
+                      )
+                    : AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: barWidth,
+                        height: barHeight,
+                        decoration: BoxDecoration(
+                          color: barColor,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(4),
+                            topRight: Radius.circular(4),
+                          ),
+                          border: isSelected ? Border.all(color: theme.colorScheme.primary, width: 2) : null,
+                          boxShadow: isSelected ? [
+                            BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.3), blurRadius: 4, spreadRadius: 1),
+                          ] : null,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -305,6 +314,9 @@ class _MonthlyBarChart extends StatelessWidget {
         final percentage = (stat.completionRate * 100).round();
         final tooltipMessage = '${stat.totalCompletions}/${stat.totalPossibleCompletions} ($percentage%)';
 
+        // Empty bars show as flat grey line, not rounded pill
+        final isEmpty = stat.totalCompletions == 0 && !stat.isFuture;
+
         return GestureDetector(
           onTap: stat.isFuture ? null : () => onBarTap?.call(stat.month),
           child: Tooltip(
@@ -312,22 +324,28 @@ class _MonthlyBarChart extends StatelessWidget {
             child: SizedBox(
               width: columnWidth,
               child: Center(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: barWidth,
-                  height: stat.totalCompletions == 0 && !stat.isFuture ? 3 : barHeight,
-                  decoration: BoxDecoration(
-                    color: barColor,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(4),
-                      topRight: Radius.circular(4),
-                    ),
-                    border: isSelected ? Border.all(color: theme.colorScheme.primary, width: 2) : null,
-                    boxShadow: isSelected ? [
-                      BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.3), blurRadius: 4, spreadRadius: 1),
-                    ] : null,
-                  ),
-                ),
+                child: isEmpty
+                    ? Container(
+                        width: barWidth,
+                        height: 2,
+                        color: isDark ? Colors.grey.shade700 : Colors.grey.shade400,
+                      )
+                    : AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: barWidth,
+                        height: barHeight,
+                        decoration: BoxDecoration(
+                          color: barColor,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(4),
+                            topRight: Radius.circular(4),
+                          ),
+                          border: isSelected ? Border.all(color: theme.colorScheme.primary, width: 2) : null,
+                          boxShadow: isSelected ? [
+                            BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.3), blurRadius: 4, spreadRadius: 1),
+                          ] : null,
+                        ),
+                      ),
               ),
             ),
           ),

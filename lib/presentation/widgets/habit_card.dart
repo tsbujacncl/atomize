@@ -43,19 +43,55 @@ class _HabitCardState extends ConsumerState<HabitCard> {
   Habit get habit => todayHabit.habit;
   bool get isCompleted => todayHabit.isCompletedToday;
 
+  /// Check if the habit is overdue (past scheduled time and not completed).
+  bool get isOverdue {
+    if (isCompleted) return false;
+    if (habit.scheduledTime.isEmpty) return false;
+
+    try {
+      final parts = habit.scheduledTime.split(':');
+      if (parts.length != 2) return false;
+
+      final scheduledHour = int.parse(parts[0]);
+      final scheduledMinute = int.parse(parts[1]);
+
+      final now = DateTime.now();
+      final scheduledToday = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        scheduledHour,
+        scheduledMinute,
+      );
+
+      return now.isAfter(scheduledToday);
+    } catch (e) {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final score = habit.score;
 
+    // Determine card colors based on state (overdue keeps white background)
+    Color? cardBackground;
+    Border? cardBorder;
+
+    if (isCompleted) {
+      cardBackground = AppColors.completedCardBackground;
+      cardBorder = Border.all(
+        color: AppColors.completedCardBorder.withValues(alpha: 0.5),
+        width: 1,
+      );
+    }
+    // Note: Overdue cards keep white background - red styling is on elements
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        border: isCompleted
-            ? Border.all(
-                color: AppColors.completedCardBorder.withValues(alpha: 0.5),
-                width: 1)
-            : null,
+        border: cardBorder,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -67,7 +103,7 @@ class _HabitCardState extends ConsumerState<HabitCard> {
       child: Card(
         clipBehavior: Clip.antiAlias,
         margin: EdgeInsets.zero,
-        color: isCompleted ? AppColors.completedCardBackground : null,
+        color: cardBackground,
         child: InkWell(
           onTap: () {
             setState(() {
@@ -113,7 +149,7 @@ class _HabitCardState extends ConsumerState<HabitCard> {
         Expanded(
           child: Row(
             children: [
-              // Name with strikethrough if completed
+              // Name with strikethrough if completed, red if overdue
               Flexible(
                 child: Text(
                   habit.name,
@@ -121,7 +157,9 @@ class _HabitCardState extends ConsumerState<HabitCard> {
                     decoration: isCompleted ? TextDecoration.lineThrough : null,
                     color: isCompleted
                         ? theme.textTheme.bodySmall?.color
-                        : null,
+                        : isOverdue
+                            ? AppColors.error
+                            : null,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -175,7 +213,7 @@ class _HabitCardState extends ConsumerState<HabitCard> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Background circle - orange when completed
+          // Background circle - orange when completed, red border when overdue
           Container(
             width: 44,
             height: 44,
@@ -184,6 +222,9 @@ class _HabitCardState extends ConsumerState<HabitCard> {
               color: isCompleted
                   ? completedColor.withValues(alpha: 0.15)
                   : theme.colorScheme.surfaceContainerHighest,
+              border: isOverdue && !isCompleted
+                  ? Border.all(color: AppColors.error, width: 2)
+                  : null,
             ),
           ),
 
@@ -308,6 +349,7 @@ class _HabitCardState extends ConsumerState<HabitCard> {
             icon: Icons.schedule,
             text: _formatTimeShort(habit.scheduledTime),
             theme: theme,
+            isOverdue: isOverdue,
           ),
         if (hasTime && hasLocation) const Gap(6),
         if (hasLocation)
@@ -326,14 +368,26 @@ class _HabitCardState extends ConsumerState<HabitCard> {
     required String text,
     required ThemeData theme,
     double? maxWidth,
+    bool isOverdue = false,
   }) {
+    // Use overdue colors for time pill when habit is overdue
+    final backgroundColor = isOverdue
+        ? AppColors.overdueTimePillBackground
+        : AppColors.tagPillBackground;
+    final borderColor = isOverdue
+        ? AppColors.overdueTimePillText.withValues(alpha: 0.3)
+        : AppColors.tagPillBorder;
+    final contentColor = isOverdue
+        ? AppColors.overdueTimePillText
+        : AppColors.sectionHeaderText;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.tagPillBackground,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.tagPillBorder,
+          color: borderColor,
           width: 1,
         ),
       ),
@@ -343,7 +397,7 @@ class _HabitCardState extends ConsumerState<HabitCard> {
           Icon(
             icon,
             size: 12,
-            color: AppColors.sectionHeaderText,
+            color: contentColor,
           ),
           const Gap(4),
           ConstrainedBox(
@@ -352,7 +406,7 @@ class _HabitCardState extends ConsumerState<HabitCard> {
               text,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontSize: 11,
-                color: AppColors.sectionHeaderText,
+                color: contentColor,
                 fontWeight: FontWeight.w500,
               ),
               overflow: TextOverflow.ellipsis,

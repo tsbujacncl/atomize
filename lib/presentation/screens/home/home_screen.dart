@@ -229,7 +229,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   );
                 },
                 icon: const Icon(Icons.add),
-                label: const Text('New Habit'),
+                label: const Text('New Atom'),
               ),
       ),
     );
@@ -265,7 +265,7 @@ class _EmptyState extends StatelessWidget {
               ),
               const Gap(24),
               Text(
-                'Start your first habit',
+                'Start your first atom',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -288,7 +288,7 @@ class _EmptyState extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.add),
-                label: const Text('Add Habit'),
+                label: const Text('Add Atom'),
               ),
             ],
           ),
@@ -428,52 +428,33 @@ class _HabitListWithHistory extends ConsumerWidget {
                   ),
                   const Gap(16),
 
-                  // Period stats row (aggregate for selected period)
+                  // Combined stats boxes + chart side by side
                   historyAsync.when(
-                    data: (data) => _PeriodStatsRow(
+                    data: (data) => _CombinedStatsWithChart(
                       period: selectedPeriod,
-                      completionPercentage: data.periodCompletionPercentage,
-                      avgScore: data.periodAvgScore,
-                    ),
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                  ),
-                  const Gap(16),
-
-                  // History bar chart
-                  historyAsync.when(
-                    data: (data) => HistoryBarChart(
-                      data: data,
+                      // Today stats
+                      todayCompletedCount: completedCount,
+                      todayTotalCount: habits.length,
+                      todayAvgScore: data.todayAvgScore,
+                      todayScoreChange: data.todayScoreChange,
+                      // Period stats
+                      periodCompletionPercentage: data.periodCompletionPercentage,
+                      periodAvgScore: data.periodAvgScore,
+                      // Chart
+                      historyData: data,
                       selectedDate: selectedDate,
                       onBarTap: onBarTap,
                     ),
                     loading: () => const SizedBox(
-                      height: 120,
+                      height: 150,
                       child: Center(child: CircularProgressIndicator()),
                     ),
                     error: (_, __) => const SizedBox(
-                      height: 120,
+                      height: 150,
                       child: Center(child: Text('Failed to load history')),
                     ),
                   ),
-                  const Gap(24),
-
-                  // Day header (Today, Yesterday, or date)
-                  _DayHeader(date: selectedDate),
-                  const Gap(12),
-
-                  // Today stats row
-                  historyAsync.when(
-                    data: (data) => _TodayStatsRow(
-                      completedCount: completedCount,
-                      totalCount: habits.length,
-                      avgScore: data.todayAvgScore,
-                      scoreChange: data.todayScoreChange,
-                    ),
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                  ),
-                  const Gap(20),
+                  const Gap(16),
 
                   // Purpose prompt banner
                   nextPurposePrompt.when(
@@ -542,308 +523,243 @@ class _HabitListWithHistory extends ConsumerWidget {
   }
 }
 
-/// Period stats row showing aggregate completion % and average score for the period.
-class _PeriodStatsRow extends StatelessWidget {
+/// Combined stats boxes (Today + Period) beside the bar chart.
+class _CombinedStatsWithChart extends StatelessWidget {
   final HistoryPeriod period;
-  final double completionPercentage;
-  final double avgScore;
+  // Today stats
+  final int todayCompletedCount;
+  final int todayTotalCount;
+  final double todayAvgScore;
+  final int todayScoreChange;
+  // Period stats
+  final double periodCompletionPercentage;
+  final double periodAvgScore;
+  // Chart
+  final HomeHistoryData historyData;
+  final DateTime selectedDate;
+  final ValueChanged<DateTime> onBarTap;
 
-  const _PeriodStatsRow({
+  const _CombinedStatsWithChart({
     required this.period,
-    required this.completionPercentage,
-    required this.avgScore,
+    required this.todayCompletedCount,
+    required this.todayTotalCount,
+    required this.todayAvgScore,
+    required this.todayScoreChange,
+    required this.periodCompletionPercentage,
+    required this.periodAvgScore,
+    required this.historyData,
+    required this.selectedDate,
+    required this.onBarTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final flameColor = AppColors.getFlameColor(avgScore);
+    final todayFlameColor = AppColors.getFlameColor(todayAvgScore);
+    final periodFlameColor = AppColors.getFlameColor(periodAvgScore);
+    final allDone = todayTotalCount > 0 && todayCompletedCount >= todayTotalCount;
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Completed box
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.colorScheme.outline.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Completed',
-                  style: theme.textTheme.bodySmall,
-                ),
-                Text(
-                  period.displayLabel,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
-                    fontSize: 11,
-                  ),
-                ),
-                const Gap(4),
-                Text(
-                  '${completionPercentage.round()}%',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const Gap(12),
-        // Average box with heat-colored flame
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.colorScheme.outline.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Average',
-                  style: theme.textTheme.bodySmall,
-                ),
-                Text(
-                  period.displayLabel,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
-                    fontSize: 11,
-                  ),
-                ),
-                const Gap(4),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.local_fire_department,
-                      color: flameColor,
-                      size: 24,
-                    ),
-                    const Gap(4),
-                    Text(
-                      avgScore.round().toString(),
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: flameColor,
-                      ),
+        // Left column: Stats boxes stacked vertically
+        SizedBox(
+          width: 135,
+          child: Column(
+            children: [
+              // Completed box
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Header showing the day name (Today, Yesterday, or formatted date).
-class _DayHeader extends StatelessWidget {
-  final DateTime date;
-
-  const _DayHeader({required this.date});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final dateOnly = DateTime(date.year, date.month, date.day);
-
-    String label;
-    if (dateOnly.isAtSameMomentAs(today)) {
-      label = 'Today';
-    } else if (dateOnly.isAtSameMomentAs(today.subtract(const Duration(days: 1)))) {
-      label = 'Yesterday';
-    } else {
-      // Format as "27th November 2025"
-      final day = date.day;
-      final suffix = _getDaySuffix(day);
-      final months = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ];
-      label = '$day$suffix ${months[date.month - 1]} ${date.year}';
-    }
-
-    return Text(
-      label,
-      style: theme.textTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.bold,
-      ),
-    );
-  }
-
-  String _getDaySuffix(int day) {
-    if (day >= 11 && day <= 13) return 'th';
-    switch (day % 10) {
-      case 1:
-        return 'st';
-      case 2:
-        return 'nd';
-      case 3:
-        return 'rd';
-      default:
-        return 'th';
-    }
-  }
-}
-
-/// Stats row showing completion fraction and average score for a day.
-class _TodayStatsRow extends StatelessWidget {
-  final int completedCount;
-  final int totalCount;
-  final double avgScore;
-  final int scoreChange;
-
-  const _TodayStatsRow({
-    required this.completedCount,
-    required this.totalCount,
-    required this.avgScore,
-    required this.scoreChange,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final allDone = totalCount > 0 && completedCount >= totalCount;
-    final flameColor = AppColors.getFlameColor(avgScore);
-
-    return Row(
-      children: [
-        // Completed box - green when all done
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            decoration: BoxDecoration(
-              color: allDone
-                  ? AppColors.success.withValues(alpha: 0.15)
-                  : theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: allDone
-                    ? AppColors.success.withValues(alpha: 0.5)
-                    : theme.colorScheme.outline.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Completed',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    if (allDone) ...[
-                      const Gap(4),
-                      Icon(
-                        Icons.check_circle,
-                        size: 14,
-                        color: AppColors.success,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
+                    ),
+                    const Gap(8),
+                    // Today row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Today:',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '$todayCompletedCount/$todayTotalCount',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: allDone ? AppColors.success : null,
+                              ),
+                            ),
+                            if (allDone) ...[
+                              const Gap(3),
+                              Icon(
+                                Icons.check_circle,
+                                size: 12,
+                                color: AppColors.success,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                    const Gap(4),
+                    // Period row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${period.displayLabel}:',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        Text(
+                          '${periodCompletionPercentage.round()}%',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-                Text(
-                  '(Today)',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
-                    fontSize: 11,
-                  ),
+              ),
+              const Gap(8),
+              // Average box
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                const Gap(4),
-                Text(
-                  '$completedCount/$totalCount',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: allDone ? AppColors.success : null,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Average',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Gap(8),
+                    // Today row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Today:',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.local_fire_department,
+                              color: todayFlameColor,
+                              size: 14,
+                            ),
+                            const Gap(2),
+                            Text(
+                              todayAvgScore.round().toString(),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: todayFlameColor,
+                              ),
+                            ),
+                            if (todayScoreChange != 0) ...[
+                              const Gap(3),
+                              Icon(
+                                todayScoreChange > 0
+                                    ? Icons.arrow_upward
+                                    : Icons.arrow_downward,
+                                size: 10,
+                                color: todayScoreChange > 0
+                                    ? AppColors.success
+                                    : AppColors.error,
+                              ),
+                              Text(
+                                '${todayScoreChange.abs()}',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontSize: 10,
+                                  color: todayScoreChange > 0
+                                      ? AppColors.success
+                                      : AppColors.error,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                    const Gap(4),
+                    // Period row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${period.displayLabel}:',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.local_fire_department,
+                              color: periodFlameColor,
+                              size: 14,
+                            ),
+                            const Gap(2),
+                            Text(
+                              periodAvgScore.round().toString(),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: periodFlameColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
         const Gap(12),
-        // Average box with heat-colored flame and change arrow
+        // Right column: Bar chart
         Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.colorScheme.outline.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Average',
-                  style: theme.textTheme.bodySmall,
-                ),
-                Text(
-                  '(Today)',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
-                    fontSize: 11,
-                  ),
-                ),
-                const Gap(4),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.local_fire_department,
-                      color: flameColor,
-                      size: 24,
-                    ),
-                    const Gap(4),
-                    Text(
-                      avgScore.round().toString(),
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: flameColor,
-                      ),
-                    ),
-                    if (scoreChange != 0) ...[
-                      const Gap(6),
-                      Icon(
-                        scoreChange > 0
-                            ? Icons.arrow_upward
-                            : Icons.arrow_downward,
-                        size: 16,
-                        color: scoreChange > 0
-                            ? AppColors.success
-                            : AppColors.error,
-                      ),
-                      Text(
-                        '${scoreChange.abs()}',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: scoreChange > 0
-                              ? AppColors.success
-                              : AppColors.error,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
+          child: HistoryBarChart(
+            data: historyData,
+            selectedDate: selectedDate,
+            onBarTap: onBarTap,
           ),
         ),
       ],
