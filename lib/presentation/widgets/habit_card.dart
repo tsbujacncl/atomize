@@ -193,8 +193,6 @@ class _HabitCardState extends ConsumerState<HabitCard> {
   Widget _buildHabitIcon(ThemeData theme, IconData iconData) {
     final score = habit.score;
     final flameColor = AppColors.getFlameColor(score);
-    // Use orange for completed state, flame color for progress
-    final completedColor = AppColors.accent;
 
     // Progress ring for count/weekly types
     double? progress;
@@ -207,24 +205,31 @@ class _HabitCardState extends ConsumerState<HabitCard> {
       progressText = '${todayHabit.weeklyCount}/${todayHabit.weeklyTarget}';
     }
 
+    // Determine icon color: blue when completed, red when overdue, default otherwise
+    final Color iconColor;
+    if (isCompleted) {
+      iconColor = AppColors.flameBlue;
+    } else if (isOverdue) {
+      iconColor = AppColors.error;
+    } else {
+      iconColor = theme.colorScheme.onSurfaceVariant;
+    }
+
     return SizedBox(
       width: 44,
       height: 44,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Background circle - orange when completed, red border when overdue
+          // Background circle
           Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isCompleted
-                  ? completedColor.withValues(alpha: 0.15)
+                  ? AppColors.flameBlue.withValues(alpha: 0.15)
                   : theme.colorScheme.surfaceContainerHighest,
-              border: isOverdue && !isCompleted
-                  ? Border.all(color: AppColors.error, width: 2)
-                  : null,
             ),
           ),
 
@@ -241,11 +246,11 @@ class _HabitCardState extends ConsumerState<HabitCard> {
               ),
             ),
 
-          // Icon - orange when completed
+          // Icon - blue when completed, red when overdue
           Icon(
             iconData,
             size: 22,
-            color: isCompleted ? completedColor : theme.colorScheme.onSurfaceVariant,
+            color: iconColor,
           ),
 
           // Progress text badge (for count/weekly when not completed)
